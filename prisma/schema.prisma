@@ -22,6 +22,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   products  Product[]
+  events    Event[]
 }
 
 enum ProductStatus {
@@ -39,4 +40,87 @@ model Product {
   status    ProductStatus  @default(ACTIVE)
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
+  events    EventProduct[]
+}
+
+enum EventCategory {
+  FAIR
+  EVENT
+}
+
+enum EventStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum EventRecurrence {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+  CUSTOM
+}
+
+model Event {
+  id              String           @id @default(uuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  description     String
+  notes           Json?
+  category        EventCategory
+  status          EventStatus      @default(ACTIVE)
+  recurrence      EventRecurrence  @default(NONE)
+  startDate       DateTime
+  endDate         DateTime
+  photo           String?
+  checklist       Json?
+  commissionRate  Decimal?         @db.Decimal(5, 2)
+  participationFee Decimal?        @db.Decimal(10, 2)
+  contactInfo     Json?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  address         Address?
+  occurrences     EventOccurrence[]
+  products        EventProduct[]
+}
+
+model Address {
+  id          String   @id @default(uuid())
+  eventId     String   @unique
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  street      String
+  number      String?
+  complement  String?
+  neighborhood String
+  city        String
+  state       String
+  zipCode     String
+  country     String   @default("Brasil")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EventOccurrence {
+  id        String   @id @default(uuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  date      DateTime
+  startTime DateTime?
+  endTime   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EventProduct {
+  id        String   @id @default(uuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, productId])
 }

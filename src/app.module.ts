@@ -6,9 +6,10 @@ import { PrismaService } from './prisma/prisma.service';
 import { MpNotificationModule } from './mp-notification/mp-notification.module';
 import { MpOrderModule } from './mp-order/mp-order.module';
 import { ProductModule } from './product/product.module';
+import { EventModule } from './event/event.module';
 
 @Module({
-  imports: [AuthModule, MpNotificationModule, MpOrderModule, ProductModule],
+  imports: [AuthModule, MpNotificationModule, MpOrderModule, ProductModule, EventModule],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })

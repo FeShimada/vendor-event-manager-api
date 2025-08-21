@@ -1,13 +1,44 @@
 import * as dotenv from 'dotenv';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
+import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 
 dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe());
+
+  // Configuração melhorada do ValidationPipe
+  app.useGlobalPipes(new ValidationPipe({
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    exceptionFactory: (errors) => {
+      const messages = errors.map(error => {
+        const constraints = error.constraints;
+        const property = error.property;
+        const value = error.value;
+
+        return {
+          field: property,
+          value: value,
+          message: Object.values(constraints || {}).join(', '),
+          code: 'VALIDATION_ERROR'
+        };
+      });
+
+      return new BadRequestException({
+        message: 'Erro de validação',
+        errors: messages,
+        code: 'VALIDATION_ERROR'
+      });
+    }
+  }));
+
+  // Filtro para capturar erros do Prisma
+  app.useGlobalFilters(new PrismaExceptionFilter());
+
   await app.listen(process.env.PORT ?? 3000);
   console.log(`🚀 Aplicação rodando na porta ${process.env.PORT ?? 3000}`);
 }
