@@ -23,6 +23,7 @@ model User {
   updatedAt DateTime @updatedAt
   products  Product[]
   events    Event[]
+  orders    Order[]
 }
 
 enum ProductStatus {
@@ -84,6 +85,7 @@ model Event {
   address         Address?
   occurrences     EventOccurrence[]
   products        EventProduct[]
+  orders          Order[]
 }
 
 model Address {
@@ -121,6 +123,53 @@ model EventProduct {
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  OrderItem OrderItem[]
 
   @@unique([eventId, productId])
+}
+
+enum OrderStatus {
+  CREATED
+  EXPIRED
+  CANCELED
+  AT_TERMINAL
+  PROCESSED
+  REFUNDED
+  FAILED
+  ACTION_REQUIRED
+}
+
+model Order {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  externalRef String?
+  mercadoPagoId String?
+
+  status OrderStatus
+  amount Decimal @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items  OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  eventProductId String
+  eventProduct EventProduct @relation(fields: [eventProductId], references: [id], onDelete: Cascade)
+  
+  quantity Int
+  total Decimal @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orderId, eventProductId])
 }
