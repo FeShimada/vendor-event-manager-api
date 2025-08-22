@@ -31,6 +31,36 @@
 $ npm install
 ```
 
+## Environment Variables
+
+Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
+
+```env
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/database_name"
+
+# JWT
+JWT_SECRET="your-jwt-secret-key"
+
+# Mercado Pago Configuration
+MP_BASE_URL="https://api.mercadopago.com"
+MP_ACCESS_TOKEN="your-mercado-pago-access-token"
+MP_TERMINAL_ID="your-terminal-id"
+MP_WEBHOOK_SECRET="your-webhook-secret"
+
+# Application
+PORT=3000
+```
+
+### Configuração do Mercado Pago
+
+Para usar a integração com o Mercado Pago, você precisa configurar:
+
+1. **MP_BASE_URL**: URL base da API do Mercado Pago (geralmente `https://api.mercadopago.com`)
+2. **MP_ACCESS_TOKEN**: Token de acesso do Mercado Pago (obtido no painel do desenvolvedor)
+3. **MP_TERMINAL_ID**: ID do terminal físico do Mercado Pago
+4. **MP_WEBHOOK_SECRET**: Chave secreta para validar webhooks do Mercado Pago
+
 ## Compile and run the project
 
 ```bash

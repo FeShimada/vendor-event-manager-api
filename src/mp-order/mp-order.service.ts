@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateMpOrderDto, OrderStatusDto } from './dto/create-mp-order.dto';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class MpOrderService {
@@ -16,7 +17,7 @@ export class MpOrderService {
             items
         } = createMpOrderDto;
 
-        return this.prisma.order.create({
+        const order = await this.prisma.order.create({
             data: {
                 userId,
                 eventId,
@@ -38,6 +39,65 @@ export class MpOrderService {
                 }
             }
         });
+
+        return order;
+    }
+
+    async createMercadoPagoOrder(order) {
+        const mpBaseUrl = process.env.MP_BASE_URL;
+        const mpAccessToken = process.env.MP_ACCESS_TOKEN;
+        const mpTerminalId = process.env.MP_TERMINAL_ID;
+        const idempotencyKey = uuidv4();
+
+        if (!mpBaseUrl || !mpAccessToken || !mpTerminalId) {
+            throw new Error('Configurações do Mercado Pago não encontradas');
+        }
+
+        const requestBody = {
+            type: "point",
+            external_reference: order.id,
+            transactions: {
+                payments: {
+                    amount: order.amount
+                }
+            },
+            config: {
+                point: {
+                    terminal_id: mpTerminalId
+                }
+            }
+        };
+
+        try {
+            const response = await fetch(`${mpBaseUrl}/v1/orders`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${mpAccessToken}`,
+                    'X-Idempotency-Key': idempotencyKey,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.text();
+                throw new Error(`Erro na API do Mercado Pago: ${response.status} - ${errorData}`);
+            }
+
+            const mpOrderData = await response.json();
+
+            await this.prisma.order.update({
+                where: { id: order.id },
+                data: {
+                    mercadoPagoId: mpOrderData.id,
+                    externalRef: mpOrderData.external_reference
+                }
+            });
+
+            return mpOrderData;
+        } catch (error) {
+            throw new Error(`Falha ao criar ordem no Mercado Pago: ${error.message}`);
+        }
     }
 
     async findByStatus(status: OrderStatusDto) {
