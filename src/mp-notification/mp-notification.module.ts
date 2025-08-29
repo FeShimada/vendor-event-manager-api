@@ -5,6 +5,6 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Module({
   controllers: [MpNotificationController],
-  providers: [MpNotificationService, PrismaService]
+  providers: [MpNotificationService, PrismaService],
 })
-export class MpNotificationModule { }
+export class MpNotificationModule {}

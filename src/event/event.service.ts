@@ -2,11 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import type { EventCategory, EventStatus, EventRecurrence } from 'generated/prisma';
+import type {
+  EventCategory,
+  EventStatus,
+  EventRecurrence,
+} from 'generated/prisma';
 
 @Injectable()
 export class EventService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createEventDto: CreateEventDto) {
     const {
@@ -45,37 +49,49 @@ export class EventService {
         commissionRate,
         participationFee,
         contactInfo,
-        address: address ? {
-          create: {
-            street: address.street,
-            number: address.number,
-            complement: address.complement,
-            neighborhood: address.neighborhood,
-            city: address.city,
-            state: address.state,
-            zipCode: address.zipCode,
-            country: address.country || 'Brasil',
-          }
-        } : undefined,
-        products: productIds && productIds.length > 0 ? {
-          create: productIds.map(productId => ({
-            productId,
-          }))
-        } : undefined,
-        occurrences: occurrences && occurrences.length > 0 ? {
-          create: occurrences.map(occurrence => ({
-            date: new Date(occurrence.date),
-            startTime: occurrence.startTime ? new Date(occurrence.startTime) : null,
-            endTime: occurrence.endTime ? new Date(occurrence.endTime) : null,
-          }))
-        } : undefined,
+        address: address
+          ? {
+              create: {
+                street: address.street,
+                number: address.number,
+                complement: address.complement,
+                neighborhood: address.neighborhood,
+                city: address.city,
+                state: address.state,
+                zipCode: address.zipCode,
+                country: address.country || 'Brasil',
+              },
+            }
+          : undefined,
+        products:
+          productIds && productIds.length > 0
+            ? {
+                create: productIds.map((productId) => ({
+                  productId,
+                })),
+              }
+            : undefined,
+        occurrences:
+          occurrences && occurrences.length > 0
+            ? {
+                create: occurrences.map((occurrence) => ({
+                  date: new Date(occurrence.date),
+                  startTime: occurrence.startTime
+                    ? new Date(occurrence.startTime)
+                    : null,
+                  endTime: occurrence.endTime
+                    ? new Date(occurrence.endTime)
+                    : null,
+                })),
+              }
+            : undefined,
       },
       include: {
         address: true,
         products: {
           include: {
             product: true,
-          }
+          },
         },
         occurrences: true,
         user: {
@@ -83,9 +99,9 @@ export class EventService {
             id: true,
             name: true,
             email: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
   }
 
@@ -96,7 +112,7 @@ export class EventService {
         products: {
           include: {
             product: true,
-          }
+          },
         },
         occurrences: true,
         user: {
@@ -104,9 +120,9 @@ export class EventService {
             id: true,
             name: true,
             email: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
   }
 
@@ -118,7 +134,7 @@ export class EventService {
         products: {
           include: {
             product: true,
-          }
+          },
         },
         occurrences: true,
         user: {
@@ -126,9 +142,9 @@ export class EventService {
             id: true,
             name: true,
             email: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
   }
 
@@ -157,7 +173,7 @@ export class EventService {
     if (productIds) {
       // Remover produtos existentes
       await this.prisma.eventProduct.deleteMany({
-        where: { eventId: id }
+        where: { eventId: id },
       });
     }
 
@@ -165,7 +181,7 @@ export class EventService {
     if (occurrences) {
       // Remover ocorrências existentes
       await this.prisma.eventOccurrence.deleteMany({
-        where: { eventId: id }
+        where: { eventId: id },
       });
     }
 
@@ -186,49 +202,61 @@ export class EventService {
         commissionRate,
         participationFee,
         contactInfo,
-        address: address ? {
-          upsert: {
-            create: {
-              street: address.street,
-              number: address.number,
-              complement: address.complement,
-              neighborhood: address.neighborhood,
-              city: address.city,
-              state: address.state,
-              zipCode: address.zipCode,
-              country: address.country || 'Brasil',
-            },
-            update: {
-              street: address.street,
-              number: address.number,
-              complement: address.complement,
-              neighborhood: address.neighborhood,
-              city: address.city,
-              state: address.state,
-              zipCode: address.zipCode,
-              country: address.country || 'Brasil',
+        address: address
+          ? {
+              upsert: {
+                create: {
+                  street: address.street,
+                  number: address.number,
+                  complement: address.complement,
+                  neighborhood: address.neighborhood,
+                  city: address.city,
+                  state: address.state,
+                  zipCode: address.zipCode,
+                  country: address.country || 'Brasil',
+                },
+                update: {
+                  street: address.street,
+                  number: address.number,
+                  complement: address.complement,
+                  neighborhood: address.neighborhood,
+                  city: address.city,
+                  state: address.state,
+                  zipCode: address.zipCode,
+                  country: address.country || 'Brasil',
+                },
+              },
             }
-          }
-        } : undefined,
-        products: productIds && productIds.length > 0 ? {
-          create: productIds.map(productId => ({
-            productId,
-          }))
-        } : undefined,
-        occurrences: occurrences && occurrences.length > 0 ? {
-          create: occurrences.map(occurrence => ({
-            date: new Date(occurrence.date),
-            startTime: occurrence.startTime ? new Date(occurrence.startTime) : null,
-            endTime: occurrence.endTime ? new Date(occurrence.endTime) : null,
-          }))
-        } : undefined,
+          : undefined,
+        products:
+          productIds && productIds.length > 0
+            ? {
+                create: productIds.map((productId) => ({
+                  productId,
+                })),
+              }
+            : undefined,
+        occurrences:
+          occurrences && occurrences.length > 0
+            ? {
+                create: occurrences.map((occurrence) => ({
+                  date: new Date(occurrence.date),
+                  startTime: occurrence.startTime
+                    ? new Date(occurrence.startTime)
+                    : null,
+                  endTime: occurrence.endTime
+                    ? new Date(occurrence.endTime)
+                    : null,
+                })),
+              }
+            : undefined,
       },
       include: {
         address: true,
         products: {
           include: {
             product: true,
-          }
+          },
         },
         occurrences: true,
         user: {
@@ -236,9 +264,9 @@ export class EventService {
             id: true,
             name: true,
             email: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
   }
 
@@ -250,7 +278,7 @@ export class EventService {
         products: {
           include: {
             product: true,
-          }
+          },
         },
         occurrences: true,
         user: {
@@ -258,9 +286,9 @@ export class EventService {
             id: true,
             name: true,
             email: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
   }
 }

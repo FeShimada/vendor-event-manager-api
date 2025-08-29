@@ -9,7 +9,13 @@ import { ProductModule } from './product/product.module';
 import { EventModule } from './event/event.module';
 
 @Module({
-  imports: [AuthModule, MpNotificationModule, MpOrderModule, ProductModule, EventModule],
+  imports: [
+    AuthModule,
+    MpNotificationModule,
+    MpOrderModule,
+    ProductModule,
+    EventModule,
+  ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })

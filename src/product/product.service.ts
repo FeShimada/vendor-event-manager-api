@@ -6,7 +6,7 @@ import type { ProductStatus } from 'generated/prisma';
 
 @Injectable()
 export class ProductService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createProductDto: CreateProductDto) {
     return this.prisma.product.create({
@@ -29,9 +29,10 @@ export class ProductService {
   }
 
   async update(id: string, updateProductDto: UpdateProductDto) {
-    const { userId, name, price, cost, status } = updateProductDto as UpdateProductDto & {
-      status?: ProductStatus;
-    };
+    const { userId, name, price, cost, status } =
+      updateProductDto as UpdateProductDto & {
+        status?: ProductStatus;
+      };
     return this.prisma.product.update({
       where: { id },
       data: {

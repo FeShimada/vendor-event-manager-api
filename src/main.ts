@@ -10,31 +10,33 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Configuração melhorada do ValidationPipe
-  app.useGlobalPipes(new ValidationPipe({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    exceptionFactory: (errors) => {
-      const messages = errors.map(error => {
-        const constraints = error.constraints;
-        const property = error.property;
-        const value = error.value;
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      exceptionFactory: (errors) => {
+        const messages = errors.map((error) => {
+          const constraints = error.constraints;
+          const property = error.property;
+          const value = error.value;
 
-        return {
-          field: property,
-          value: value,
-          message: Object.values(constraints || {}).join(', '),
-          code: 'VALIDATION_ERROR'
-        };
-      });
+          return {
+            field: property,
+            value: value,
+            message: Object.values(constraints || {}).join(', '),
+            code: 'VALIDATION_ERROR',
+          };
+        });
 
-      return new BadRequestException({
-        message: 'Erro de validação',
-        errors: messages,
-        code: 'VALIDATION_ERROR'
-      });
-    }
-  }));
+        return new BadRequestException({
+          message: 'Erro de validação',
+          errors: messages,
+          code: 'VALIDATION_ERROR',
+        });
+      },
+    }),
+  );
 
   // Filtro para capturar erros do Prisma
   app.useGlobalFilters(new PrismaExceptionFilter());
