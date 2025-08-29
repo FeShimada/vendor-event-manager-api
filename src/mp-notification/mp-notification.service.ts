@@ -1,10 +1,110 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger, NotFoundException } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'crypto';
+import { OrderStatusDto } from 'src/mp-order/dto/create-mp-order.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import type { WebhookBody } from './interfaces/webhook.interface';
 
 @Injectable()
 export class MpNotificationService {
 
+    constructor(private readonly prisma: PrismaService) { }
+
     private readonly logger = new Logger(MpNotificationService.name);
+
+    async updateOrderStatus(externalRef: string, status: OrderStatusDto) {
+        if (!externalRef || typeof externalRef !== 'string') {
+            this.logger.error(`ExternalRef inválido: ${externalRef}`);
+            throw new Error('Invalid externalRef parameter');
+        }
+
+        if (!status || !Object.values(OrderStatusDto).includes(status)) {
+            this.logger.error(`Status inválido: ${status}`);
+            throw new Error('Invalid status parameter');
+        }
+
+        this.logger.log(`Atualizando status do pedido com externalRef: ${externalRef} para status: ${status}`);
+
+        const order = await this.prisma.order.findFirst({
+            where: { externalRef }
+        });
+
+        if (!order) {
+            this.logger.error(`Pedido não encontrado com externalRef: ${externalRef}`);
+            throw new NotFoundException(`Order not found with externalRef: ${externalRef}`);
+        }
+
+        this.logger.log(`Pedido encontrado: ${order.id}, status atual: ${order.status}`);
+
+        return this.prisma.order.update({
+            where: { id: order.id },
+            data: { status }
+        });
+    }
+
+    async processWebhook(params: {
+        body: WebhookBody;
+        xSignatureHeader: string | undefined;
+        xRequestIdHeader: string | undefined;
+        dataIdFromQuery: string | undefined;
+        secret: string | undefined;
+    }) {
+        const { body, xSignatureHeader, xRequestIdHeader, dataIdFromQuery, secret } = params;
+
+        this.logger.log('=== Iniciando processamento do webhook ===');
+        this.logger.log(`Action: ${body.action}`);
+
+        this.logger.log(`External Reference: ${body.data.external_reference}`);
+        this.logger.log(`Status: ${body.data.status}`);
+
+        this.validateWebhookSignature({
+            xSignatureHeader,
+            xRequestIdHeader,
+            dataIdFromQuery,
+            secret,
+        });
+
+        const status = this.mapMercadoPagoStatusToOrderStatus(body.data.status);
+
+        if (status) {
+            await this.updateOrderStatus(body.data.external_reference, status);
+            this.logger.log(`Status atualizado com sucesso para: ${status}`);
+        } else {
+            this.logger.warn(`Status não mapeado: ${body.data.status}`);
+        }
+
+        return {
+            success: true,
+            message: 'Webhook processed successfully',
+            orderStatus: status
+        };
+    }
+
+    private mapMercadoPagoStatusToOrderStatus(mpStatus: string): OrderStatusDto | null {
+        if (!mpStatus || typeof mpStatus !== 'string') {
+            this.logger.warn(`Status inválido recebido: ${mpStatus}`);
+            return null;
+        }
+
+        const statusMap: Record<string, OrderStatusDto> = {
+            'created': OrderStatusDto.CREATED,
+            'expired': OrderStatusDto.EXPIRED,
+            'canceled': OrderStatusDto.CANCELED,
+            'at_terminal': OrderStatusDto.AT_TERMINAL,
+            'processed': OrderStatusDto.PROCESSED,
+            'refunded': OrderStatusDto.REFUNDED,
+            'failed': OrderStatusDto.FAILED,
+            'action_required': OrderStatusDto.ACTION_REQUIRED,
+        };
+
+        const normalizedStatus = mpStatus.toLowerCase().trim();
+        const mappedStatus = statusMap[normalizedStatus];
+
+        if (!mappedStatus) {
+            this.logger.warn(`Status não reconhecido: "${mpStatus}" (normalizado: "${normalizedStatus}")`);
+        }
+
+        return mappedStatus || null;
+    }
 
     validateWebhookSignature(params: {
         xSignatureHeader: string | undefined;
