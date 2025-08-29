@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 dotenv.config();
 
@@ -38,8 +39,8 @@ async function bootstrap() {
     }),
   );
 
-  // Filtro para capturar erros do Prisma
   app.useGlobalFilters(new PrismaExceptionFilter());
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   await app.listen(process.env.PORT ?? 3000);
   console.log(`🚀 Aplicação rodando na porta ${process.env.PORT ?? 3000}`);

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { v4 as uuidv4 } from 'uuid';
+import { MercadoPagoException } from 'src/common/filters/mercado-pago-exception.filter';
 
 export interface MercadoPagoOrderRequest {
   type: string;
@@ -46,7 +47,12 @@ export class MercadoPagoService {
 
     if (!mpBaseUrl || !mpAccessToken || !mpTerminalId) {
       this.logger.error('Configurações do Mercado Pago não encontradas');
-      throw new Error('Configurações do Mercado Pago não encontradas');
+      throw new MercadoPagoException(
+        500,
+        'Configurações do Mercado Pago não encontradas',
+        'CONFIGURATION_ERROR',
+        { missingConfigs: { mpBaseUrl: !mpBaseUrl, mpAccessToken: !mpAccessToken, mpTerminalId: !mpTerminalId } }
+      );
     }
 
     const requestBody: MercadoPagoOrderRequest = {
@@ -86,8 +92,29 @@ export class MercadoPagoService {
         this.logger.error(
           `Erro na API do Mercado Pago: ${response.status} - ${errorData}`,
         );
-        throw new Error(
+
+        let errorCode = 'API_ERROR';
+        let errorDetails: any = { rawResponse: errorData };
+
+        try {
+          const parsedError = JSON.parse(errorData);
+          if (parsedError.errors && parsedError.errors.length > 0) {
+            const firstError = parsedError.errors[0];
+            errorCode = firstError.code || 'API_ERROR';
+            errorDetails = {
+              code: firstError.code,
+              message: firstError.message,
+              rawResponse: errorData
+            };
+          }
+        } catch (parseError) {
+        }
+
+        throw new MercadoPagoException(
+          response.status,
           `Erro na API do Mercado Pago: ${response.status} - ${errorData}`,
+          errorCode,
+          errorDetails
         );
       }
 
@@ -107,12 +134,25 @@ export class MercadoPagoService {
 
       return mpOrderData;
     } catch (error) {
+      if (error instanceof MercadoPagoException) {
+        this.logger.error(
+          `Falha ao criar ordem no Mercado Pago para orderId ${order.id}: ${error.message}`,
+        );
+        throw error;
+      }
+
       const errorMessage =
         error instanceof Error ? error.message : 'Erro desconhecido';
       this.logger.error(
         `Falha ao criar ordem no Mercado Pago para orderId ${order.id}: ${errorMessage}`,
       );
-      throw new Error(`Falha ao criar ordem no Mercado Pago: ${errorMessage}`);
+
+      throw new MercadoPagoException(
+        500,
+        `Falha ao criar ordem no Mercado Pago: ${errorMessage}`,
+        'INTERNAL_ERROR',
+        { originalError: errorMessage }
+      );
     }
   }
 
@@ -122,7 +162,12 @@ export class MercadoPagoService {
     const mpTerminalId = process.env.MP_TERMINAL_ID;
 
     if (!mpBaseUrl || !mpAccessToken || !mpTerminalId) {
-      throw new Error('Configurações do Mercado Pago incompletas');
+      throw new MercadoPagoException(
+        500,
+        'Configurações do Mercado Pago incompletas',
+        'CONFIGURATION_ERROR',
+        { missingConfigs: { mpBaseUrl: !mpBaseUrl, mpAccessToken: !mpAccessToken, mpTerminalId: !mpTerminalId } }
+      );
     }
 
     this.logger.log('Configurações do Mercado Pago validadas com sucesso');

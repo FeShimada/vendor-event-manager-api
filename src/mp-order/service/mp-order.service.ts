@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateMpOrderDto, OrderStatusDto } from '../dto/create-mp-order.dto';
 import { OrderBusinessService } from './order-business.service';
 import { MercadoPagoService } from './mercado-pago.service';
+import { MercadoPagoException } from 'src/common/filters/mercado-pago-exception.filter';
 
 @Injectable()
 export class MpOrderService {
@@ -15,49 +16,56 @@ export class MpOrderService {
     private readonly logger = new Logger(MpOrderService.name);
 
     async create(createMpOrderDto: CreateMpOrderDto) {
-        return await this.prisma.$transaction(async (prisma) => {
-            await this.orderBusiness.validateOrderData(createMpOrderDto);
+        try {
+            return await this.prisma.$transaction(async (prisma) => {
+                await this.orderBusiness.validateOrderData(createMpOrderDto);
 
-            const processedOrder =
-                await this.orderBusiness.processOrderCreation(createMpOrderDto);
+                const processedOrder =
+                    await this.orderBusiness.processOrderCreation(createMpOrderDto);
 
-            const order = await prisma.order.create({
-                data: {
-                    userId: processedOrder.userId,
-                    eventId: processedOrder.eventId,
-                    amount: processedOrder.totalAmount,
-                    status: OrderStatusDto.CREATED,
-                    items: {
-                        create: processedOrder.items.map((item) => ({
-                            eventProductId: item.eventProductId,
-                            quantity: item.quantity,
-                            total: item.total,
-                        })),
-                    },
-                },
-                include: {
-                    items: {
-                        include: {
-                            eventProduct: true,
+                const order = await prisma.order.create({
+                    data: {
+                        userId: processedOrder.userId,
+                        eventId: processedOrder.eventId,
+                        amount: processedOrder.totalAmount,
+                        status: OrderStatusDto.CREATED,
+                        items: {
+                            create: processedOrder.items.map((item) => ({
+                                eventProductId: item.eventProductId,
+                                quantity: item.quantity,
+                                total: item.total,
+                            })),
                         },
                     },
-                },
-            });
+                    include: {
+                        items: {
+                            include: {
+                                eventProduct: true,
+                            },
+                        },
+                    },
+                });
 
-            try {
                 await this.mercadoPagoService.createOrder(order, prisma);
 
                 return order;
-            } catch (error) {
-                const errorMessage =
-                    error instanceof Error ? error.message : 'Erro desconhecido';
+            });
+        } catch (error) {
+            if (error instanceof MercadoPagoException) {
                 this.logger.error(
-                    `Erro ao criar ordem no Mercado Pago: ${errorMessage}`,
+                    `Erro do Mercado Pago ao criar ordem: ${error.message}`,
                 );
-
-                throw new Error(`Falha ao processar pagamento: ${errorMessage}`);
+                throw error;
             }
-        });
+
+            const errorMessage =
+                error instanceof Error ? error.message : 'Erro desconhecido';
+            this.logger.error(
+                `Erro ao criar ordem no Mercado Pago: ${errorMessage}`,
+            );
+
+            throw new Error(`Falha ao processar pagamento: ${errorMessage}`);
+        }
     }
 
     async findByStatus(status: OrderStatusDto) {
