@@ -50,8 +50,10 @@ enum EventCategory {
 }
 
 enum EventStatus {
+  DRAFT
   ACTIVE
   INACTIVE
+  ARCHIVED
 }
 
 enum EventRecurrence {
@@ -71,7 +73,7 @@ model Event {
   description     String
   notes           Json?
   category        EventCategory
-  status          EventStatus      @default(ACTIVE)
+  status          EventStatus      @default(DRAFT)
   recurrence      EventRecurrence  @default(NONE)
   startDate       DateTime
   endDate         DateTime

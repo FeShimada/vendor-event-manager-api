@@ -17,8 +17,10 @@ export enum EventCategoryDto {
 }
 
 export enum EventStatusDto {
+  DRAFT = 'DRAFT',
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
+  ARCHIVED = 'ARCHIVED',
 }
 
 export enum EventRecurrenceDto {

@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { CreateEventDto } from './dto/create-event.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { CreateEventDto, EventStatusDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import type {
@@ -41,7 +41,7 @@ export class EventService {
         description,
         notes,
         category: category as EventCategory,
-        status: (status as EventStatus) || 'ACTIVE',
+        status: (status as EventStatus) || 'DRAFT',
         recurrence: (recurrence as EventRecurrence) || 'NONE',
         startDate: new Date(startDate),
         endDate: new Date(endDate),
@@ -205,17 +205,13 @@ export class EventService {
       occurrences,
     } = updateEventDto;
 
-    // Se productIds for fornecido, atualizar relacionamentos
     if (productIds) {
-      // Remover produtos existentes
       await this.prisma.eventProduct.deleteMany({
         where: { eventId: id },
       });
     }
 
-    // Se occurrences for fornecido, atualizar ocorrências
     if (occurrences) {
-      // Remover ocorrências existentes
       await this.prisma.eventOccurrence.deleteMany({
         where: { eventId: id },
       });
@@ -307,24 +303,48 @@ export class EventService {
   }
 
   async remove(id: string) {
-    return this.prisma.event.delete({
+    const event = await this.prisma.event.findUnique({
       where: { id },
       include: {
-        address: true,
-        products: {
-          include: {
-            product: true,
-          },
-        },
-        occurrences: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        orders: true,
       },
+    });
+
+    if (!event) {
+      throw new NotFoundException(`Evento com ID ${id} não encontrado`);
+    }
+
+    if (event.orders.length > 0) {
+      return this.prisma.event.update({
+        where: { id },
+        data: { status: EventStatusDto.ARCHIVED },
+      });
+    }
+
+    if (event.status === EventStatusDto.DRAFT) {
+      return this.prisma.event.delete({
+        where: { id },
+        include: {
+          address: true,
+          products: {
+            include: {
+              product: true,
+            },
+          },
+          occurrences: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+    }
+
+    return this.prisma.event.delete({
+      where: { id },
     });
   }
 }
