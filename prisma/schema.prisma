@@ -139,6 +139,12 @@ enum OrderStatus {
   ACTION_REQUIRED
 }
 
+enum PaymentMethod {
+  CARD
+  PIX
+  CASH
+}
+
 model Order {
   id        String   @id @default(uuid())
   userId    String
@@ -148,9 +154,12 @@ model Order {
   
   externalRef String?
   mercadoPagoId String?
+  qrCode String?
+  qrCodeBase64 String?
 
   status OrderStatus
   amount Decimal @db.Decimal(10, 2)
+  paymentMethod PaymentMethod
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

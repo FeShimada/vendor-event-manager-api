@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateMpOrderDto, OrderStatusDto } from '../dto/create-mp-order.dto';
+import { CreateMpOrderDto, OrderStatusDto, PaymentMethod } from '../dto/create-mp-order.dto';
 import { OrderBusinessService } from './order-business.service';
 import { MercadoPagoService } from './mercado-pago.service';
 import { MercadoPagoException } from 'src/common/filters/mercado-pago-exception.filter';
@@ -28,7 +28,8 @@ export class MpOrderService {
                         userId: processedOrder.userId,
                         eventId: processedOrder.eventId,
                         amount: processedOrder.totalAmount,
-                        status: OrderStatusDto.CREATED,
+                        status: createMpOrderDto.paymentMethod === PaymentMethod.CASH ? OrderStatusDto.PROCESSED : OrderStatusDto.CREATED,
+                        paymentMethod: createMpOrderDto.paymentMethod,
                         items: {
                             create: processedOrder.items.map((item) => ({
                                 eventProductId: item.eventProductId,
@@ -40,15 +41,17 @@ export class MpOrderService {
                     include: {
                         items: {
                             include: {
-                                eventProduct: true,
+                                eventProduct: {
+                                    include: {
+                                        product: true,
+                                    },
+                                },
                             },
                         },
                     },
                 });
 
-                await this.mercadoPagoService.createOrder(order, prisma);
-
-                return order;
+                return await this.mercadoPagoService.createOrder(order, prisma);
             });
         } catch (error) {
             if (error instanceof MercadoPagoException) {

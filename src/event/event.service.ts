@@ -7,10 +7,11 @@ import type {
   EventStatus,
   EventRecurrence,
 } from 'generated/prisma';
+import { AddProductsToEventDto } from './dto/add-products-to-event.dto';
 
 @Injectable()
 export class EventService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(createEventDto: CreateEventDto) {
     const {
@@ -51,40 +52,75 @@ export class EventService {
         contactInfo,
         address: address
           ? {
-              create: {
-                street: address.street,
-                number: address.number,
-                complement: address.complement,
-                neighborhood: address.neighborhood,
-                city: address.city,
-                state: address.state,
-                zipCode: address.zipCode,
-                country: address.country || 'Brasil',
-              },
-            }
+            create: {
+              street: address.street,
+              number: address.number,
+              complement: address.complement,
+              neighborhood: address.neighborhood,
+              city: address.city,
+              state: address.state,
+              zipCode: address.zipCode,
+              country: address.country || 'Brasil',
+            },
+          }
           : undefined,
         products:
           productIds && productIds.length > 0
             ? {
-                create: productIds.map((productId) => ({
-                  productId,
-                })),
-              }
+              create: productIds.map((productId) => ({
+                productId,
+              })),
+            }
             : undefined,
         occurrences:
           occurrences && occurrences.length > 0
             ? {
-                create: occurrences.map((occurrence) => ({
-                  date: new Date(occurrence.date),
-                  startTime: occurrence.startTime
-                    ? new Date(occurrence.startTime)
-                    : null,
-                  endTime: occurrence.endTime
-                    ? new Date(occurrence.endTime)
-                    : null,
-                })),
-              }
+              create: occurrences.map((occurrence) => ({
+                date: new Date(occurrence.date),
+                startTime: occurrence.startTime
+                  ? new Date(occurrence.startTime)
+                  : null,
+                endTime: occurrence.endTime
+                  ? new Date(occurrence.endTime)
+                  : null,
+              })),
+            }
             : undefined,
+      },
+      include: {
+        address: true,
+        products: {
+          include: {
+            product: true,
+          },
+        },
+        occurrences: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  async addProductsToEvent(addProductsToEventDto: AddProductsToEventDto) {
+    const { eventId, productIds } = addProductsToEventDto;
+
+    const existingEvent = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
+
+    if (!existingEvent) {
+      throw new Error(`Evento com ID ${eventId} não encontrado`);
+    }
+
+    return this.prisma.event.update({
+      where: { id: eventId },
+      data: {
+        products: { create: productIds.map((productId) => ({ productId })) },
       },
       include: {
         address: true,
@@ -204,51 +240,51 @@ export class EventService {
         contactInfo,
         address: address
           ? {
-              upsert: {
-                create: {
-                  street: address.street,
-                  number: address.number,
-                  complement: address.complement,
-                  neighborhood: address.neighborhood,
-                  city: address.city,
-                  state: address.state,
-                  zipCode: address.zipCode,
-                  country: address.country || 'Brasil',
-                },
-                update: {
-                  street: address.street,
-                  number: address.number,
-                  complement: address.complement,
-                  neighborhood: address.neighborhood,
-                  city: address.city,
-                  state: address.state,
-                  zipCode: address.zipCode,
-                  country: address.country || 'Brasil',
-                },
+            upsert: {
+              create: {
+                street: address.street,
+                number: address.number,
+                complement: address.complement,
+                neighborhood: address.neighborhood,
+                city: address.city,
+                state: address.state,
+                zipCode: address.zipCode,
+                country: address.country || 'Brasil',
               },
-            }
+              update: {
+                street: address.street,
+                number: address.number,
+                complement: address.complement,
+                neighborhood: address.neighborhood,
+                city: address.city,
+                state: address.state,
+                zipCode: address.zipCode,
+                country: address.country || 'Brasil',
+              },
+            },
+          }
           : undefined,
         products:
           productIds && productIds.length > 0
             ? {
-                create: productIds.map((productId) => ({
-                  productId,
-                })),
-              }
+              create: productIds.map((productId) => ({
+                productId,
+              })),
+            }
             : undefined,
         occurrences:
           occurrences && occurrences.length > 0
             ? {
-                create: occurrences.map((occurrence) => ({
-                  date: new Date(occurrence.date),
-                  startTime: occurrence.startTime
-                    ? new Date(occurrence.startTime)
-                    : null,
-                  endTime: occurrence.endTime
-                    ? new Date(occurrence.endTime)
-                    : null,
-                })),
-              }
+              create: occurrences.map((occurrence) => ({
+                date: new Date(occurrence.date),
+                startTime: occurrence.startTime
+                  ? new Date(occurrence.startTime)
+                  : null,
+                endTime: occurrence.endTime
+                  ? new Date(occurrence.endTime)
+                  : null,
+              })),
+            }
             : undefined,
       },
       include: {

@@ -11,13 +11,13 @@ import type { WebhookBody } from './interfaces/webhook.interface';
 
 @Injectable()
 export class MpNotificationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   private readonly logger = new Logger(MpNotificationService.name);
 
-  async updateOrderStatus(externalRef: string, status: OrderStatusDto) {
-    if (!externalRef || typeof externalRef !== 'string') {
-      this.logger.error(`ExternalRef inválido: ${externalRef}`);
+  async updateOrderStatus(mpId: string, status: OrderStatusDto) {
+    if (!mpId || typeof mpId !== 'string') {
+      this.logger.error(`Mercado Pago Id inválido: ${mpId}`);
       throw new Error('Invalid externalRef parameter');
     }
 
@@ -27,19 +27,19 @@ export class MpNotificationService {
     }
 
     this.logger.log(
-      `Atualizando status do pedido com externalRef: ${externalRef} para status: ${status}`,
+      `Atualizando status do pedido com Mercado Pago Id: ${mpId} para status: ${status}`,
     );
 
     const order = await this.prisma.order.findFirst({
-      where: { externalRef },
+      where: { mercadoPagoId: mpId },
     });
 
     if (!order) {
       this.logger.error(
-        `Pedido não encontrado com externalRef: ${externalRef}`,
+        `Pedido não encontrado com Mercado Pago Id: ${mpId}`,
       );
       throw new NotFoundException(
-        `Order not found with externalRef: ${externalRef}`,
+        `Order not found with Mercado Pago Id: ${mpId}`,
       );
     }
 
@@ -71,7 +71,7 @@ export class MpNotificationService {
     this.logger.log('=== Iniciando processamento do webhook ===');
     this.logger.log(`Action: ${body.action}`);
 
-    this.logger.log(`External Reference: ${body.data.external_reference}`);
+    this.logger.log(`Mercado Pago Id: ${body.data.id}`);
     this.logger.log(`Status: ${body.data.status}`);
 
     this.validateWebhookSignature({
@@ -84,7 +84,7 @@ export class MpNotificationService {
     const status = this.mapMercadoPagoStatusToOrderStatus(body.data.status);
 
     if (status) {
-      await this.updateOrderStatus(body.data.external_reference, status);
+      await this.updateOrderStatus(body.data.id, status);
       this.logger.log(`Status atualizado com sucesso para: ${status}`);
     } else {
       this.logger.warn(`Status não mapeado: ${body.data.status}`);
@@ -114,6 +114,9 @@ export class MpNotificationService {
       refunded: OrderStatusDto.REFUNDED,
       failed: OrderStatusDto.FAILED,
       action_required: OrderStatusDto.ACTION_REQUIRED,
+      approved: OrderStatusDto.PROCESSED,
+      cancelled: OrderStatusDto.CANCELED,
+      rejected: OrderStatusDto.FAILED,
     };
 
     const normalizedStatus = mpStatus.toLowerCase().trim();
@@ -221,7 +224,7 @@ export class MpNotificationService {
 
   private parseXSignatureHeader(
     header: string,
-  ): { ts: string; v1: string } | null {
+  ): { ts: string; v1: string; } | null {
     const parts = header.split(',').map((p) => p.trim());
     const map = new Map<string, string>();
     for (const part of parts) {

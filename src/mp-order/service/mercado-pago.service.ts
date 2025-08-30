@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { v4 as uuidv4 } from 'uuid';
 import { MercadoPagoException } from 'src/common/filters/mercado-pago-exception.filter';
+import { Order, OrderItem, PaymentMethod } from 'generated/prisma';
 
 export interface MercadoPagoOrderRequest {
   type: string;
@@ -13,22 +14,33 @@ export interface MercadoPagoOrderRequest {
     }>;
   };
   config: {
-    point: {
+    point?: {
       terminal_id: string;
     };
+    qr?: {
+      external_pos_id: string;
+      mode?: string;
+    };
   };
+  total_amount?: string;
+  items?: Array<{
+    title: string;
+    unit_price: string;
+    quantity: number;
+    unit_measure: string;
+    external_code?: string;
+  }>;
 }
 
 export interface MercadoPagoOrderResponse {
   id: string;
   external_reference: string;
   status: string;
+  type_response?: {
+    qr_data: string;
+  };
 }
 
-export interface Order {
-  id: string;
-  amount: Decimal | number;
-}
 
 @Injectable()
 export class MercadoPagoService {
@@ -37,15 +49,16 @@ export class MercadoPagoService {
   constructor(private readonly prisma: PrismaService) { }
 
   async createOrder(
-    order: Order,
+    order: Order & { items: (OrderItem & { eventProduct: { product: { name: string, price: Decimal; }; }; })[]; },
     prismaClient: any = this.prisma,
   ): Promise<MercadoPagoOrderResponse> {
     const mpBaseUrl = process.env.MP_BASE_URL;
     const mpAccessToken = process.env.MP_ACCESS_TOKEN;
     const mpTerminalId = process.env.MP_TERMINAL_ID;
+    const mpExternalPosId = process.env.MP_EXTERNAL_POS_ID;
     const idempotencyKey = uuidv4();
 
-    if (!mpBaseUrl || !mpAccessToken || !mpTerminalId) {
+    if (!mpBaseUrl || !mpAccessToken || !mpTerminalId || !mpExternalPosId) {
       this.logger.error('Configurações do Mercado Pago não encontradas');
       throw new MercadoPagoException(
         500,
@@ -55,7 +68,7 @@ export class MercadoPagoService {
       );
     }
 
-    const requestBody: MercadoPagoOrderRequest = {
+    const requestBody: MercadoPagoOrderRequest = order.paymentMethod === PaymentMethod.CARD ? {
       type: 'point',
       external_reference: order.id,
       transactions: {
@@ -70,6 +83,29 @@ export class MercadoPagoService {
           terminal_id: mpTerminalId,
         },
       },
+    } : {
+      type: 'qr',
+      total_amount: String(Number(order.amount)),
+      external_reference: order.id,
+      transactions: {
+        payments: [
+          {
+            amount: String(Number(order.amount)),
+          },
+        ],
+      },
+      config: {
+        qr: {
+          external_pos_id: mpExternalPosId,
+          mode: 'dynamic'
+        },
+      },
+      items: order.items.map((item) => ({
+        title: item.eventProduct.product.name,
+        quantity: item.quantity,
+        unit_price: String(Number(item.eventProduct.product.price)),
+        unit_measure: 'un',
+      })),
     };
 
     this.logger.log(
@@ -124,15 +160,25 @@ export class MercadoPagoService {
         `Ordem criada com sucesso no Mercado Pago. OrderId: ${order.id}, MP OrderId: ${mpOrderData.id}`,
       );
 
-      await prismaClient.order.update({
+      return await prismaClient.order.update({
         where: { id: order.id },
         data: {
           mercadoPagoId: mpOrderData.id,
           externalRef: mpOrderData.external_reference,
+          qrCode: order.paymentMethod === PaymentMethod.PIX ? mpOrderData.type_response?.qr_data : undefined,
+        },
+        include: {
+          items: {
+            include: {
+              eventProduct: {
+                include: {
+                  product: true,
+                },
+              },
+            },
+          },
         },
       });
-
-      return mpOrderData;
     } catch (error) {
       if (error instanceof MercadoPagoException) {
         this.logger.error(
@@ -172,4 +218,5 @@ export class MercadoPagoService {
 
     this.logger.log('Configurações do Mercado Pago validadas com sucesso');
   }
+
 }

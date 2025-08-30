@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsUUID,
@@ -18,6 +19,12 @@ export enum OrderStatusDto {
   ACTION_REQUIRED = 'ACTION_REQUIRED',
 }
 
+export enum PaymentMethod {
+  CARD = 'CARD',
+  PIX = 'PIX',
+  CASH = 'CASH',
+}
+
 export class CreateMpOrderDto {
   @IsUUID()
   @IsNotEmpty()
@@ -26,6 +33,10 @@ export class CreateMpOrderDto {
   @IsUUID()
   @IsNotEmpty()
   eventId: string;
+
+  @IsEnum(PaymentMethod)
+  @IsNotEmpty()
+  paymentMethod: PaymentMethod;
 
   @IsArray()
   @ValidateNested({ each: true })

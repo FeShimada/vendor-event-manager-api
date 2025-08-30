@@ -12,15 +12,22 @@ import { EventService } from './event.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { AddProductsToEventDto } from './dto/add-products-to-event.dto';
 
 @Controller('event')
 export class EventController {
-  constructor(private readonly eventService: EventService) {}
+  constructor(private readonly eventService: EventService) { }
 
   @UseGuards(AuthGuard)
   @Post()
   create(@Body() createEventDto: CreateEventDto) {
     return this.eventService.create(createEventDto);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('add-products-to-event')
+  addProductToEvent(@Body() addProductToEventDto: AddProductsToEventDto) {
+    return this.eventService.addProductsToEvent(addProductToEventDto);
   }
 
   @UseGuards(AuthGuard)
