@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { EventService } from './event.service';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -20,8 +21,8 @@ export class EventController {
 
   @UseGuards(AuthGuard)
   @Post()
-  create(@Body() createEventDto: CreateEventDto) {
-    return this.eventService.create(createEventDto);
+  create(@Body() createEventDto: CreateEventDto, @Request() req) {
+    return this.eventService.create({ ...createEventDto, userId: req.user.id });
   }
 
   @UseGuards(AuthGuard)
@@ -44,8 +45,8 @@ export class EventController {
 
   @UseGuards(AuthGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto) {
-    return this.eventService.update(id, updateEventDto);
+  update(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto, @Request() req) {
+    return this.eventService.update(id, { ...updateEventDto, userId: req.user.id });
   }
 
   @UseGuards(AuthGuard)

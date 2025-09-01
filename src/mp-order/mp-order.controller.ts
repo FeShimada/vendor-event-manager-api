@@ -6,6 +6,7 @@ import {
   Query,
   UseGuards,
   UseFilters,
+  Request,
 } from '@nestjs/common';
 import { Body, Param } from '@nestjs/common';
 import { MpOrderService } from './service/mp-order.service';
@@ -20,8 +21,8 @@ export class MpOrderController {
 
   @UseGuards(AuthGuard)
   @Post()
-  create(@Body() createMpOrderDto: CreateMpOrderDto) {
-    return this.mpOrderService.create(createMpOrderDto);
+  create(@Body() createMpOrderDto: CreateMpOrderDto, @Request() req) {
+    return this.mpOrderService.create({ ...createMpOrderDto, userId: req.user.id });
   }
 
   @UseGuards(AuthGuard)

@@ -13,7 +13,7 @@ import { AddProductsToEventDto } from './dto/add-products-to-event.dto';
 export class EventService {
   constructor(private readonly prisma: PrismaService) { }
 
-  async create(createEventDto: CreateEventDto) {
+  async create(createEventDto: CreateEventDto & { userId: string; }) {
     const {
       userId,
       name,
@@ -184,7 +184,7 @@ export class EventService {
     });
   }
 
-  async update(id: string, updateEventDto: UpdateEventDto) {
+  async update(id: string, updateEventDto: UpdateEventDto & { userId: string; }) {
     const {
       userId,
       name,

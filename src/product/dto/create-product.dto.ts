@@ -13,10 +13,6 @@ export enum ProductStatusDto {
 }
 
 export class CreateProductDto {
-  @IsUUID()
-  @IsNotEmpty()
-  userId: string;
-
   @IsString()
   @IsNotEmpty()
   name: string;

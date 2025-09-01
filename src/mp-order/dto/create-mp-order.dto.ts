@@ -28,10 +28,6 @@ export enum PaymentMethod {
 export class CreateMpOrderDto {
   @IsUUID()
   @IsNotEmpty()
-  userId: string;
-
-  @IsUUID()
-  @IsNotEmpty()
   eventId: string;
 
   @IsEnum(PaymentMethod)

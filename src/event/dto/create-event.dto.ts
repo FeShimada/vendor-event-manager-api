@@ -80,10 +80,6 @@ export class CreateEventOccurrenceDto {
 }
 
 export class CreateEventDto {
-  @IsUUID()
-  @IsNotEmpty()
-  userId: string;
-
   @IsString()
   @IsNotEmpty()
   name: string;

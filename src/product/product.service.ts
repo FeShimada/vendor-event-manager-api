@@ -6,9 +6,9 @@ import type { ProductStatus } from 'generated/prisma';
 
 @Injectable()
 export class ProductService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
-  async create(createProductDto: CreateProductDto) {
+  async create(createProductDto: CreateProductDto & { userId: string; }) {
     return this.prisma.product.create({
       data: {
         userId: createProductDto.userId,
@@ -28,11 +28,8 @@ export class ProductService {
     return this.prisma.product.findUnique({ where: { id } });
   }
 
-  async update(id: string, updateProductDto: UpdateProductDto) {
-    const { userId, name, price, cost, status } =
-      updateProductDto as UpdateProductDto & {
-        status?: ProductStatus;
-      };
+  async update(id: string, updateProductDto: UpdateProductDto & { userId: string; }) {
+    const { userId, name, price, cost, status } = updateProductDto;
     return this.prisma.product.update({
       where: { id },
       data: {

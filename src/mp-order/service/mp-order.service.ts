@@ -15,7 +15,7 @@ export class MpOrderService {
 
     private readonly logger = new Logger(MpOrderService.name);
 
-    async create(createMpOrderDto: CreateMpOrderDto) {
+    async create(createMpOrderDto: CreateMpOrderDto & { userId: string; }) {
         try {
             return await this.prisma.$transaction(async (prisma) => {
                 await this.orderBusiness.validateOrderData(createMpOrderDto);
