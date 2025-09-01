@@ -51,7 +51,7 @@ export class AuthService {
       {
         userId: user.id, type: 'refresh', jti
       },
-      { expiresIn: '7d' },
+      { expiresIn: '90d' },
     );
 
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
@@ -128,7 +128,7 @@ export class AuthService {
         jti,
         type: 'refresh',
       },
-      { expiresIn: '7d' },
+      { expiresIn: '90d' },
     );
 
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
