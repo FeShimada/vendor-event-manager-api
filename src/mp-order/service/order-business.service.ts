@@ -12,7 +12,7 @@ export class OrderBusinessService {
         private readonly priceCalculator: PriceCalculatorService,
     ) { }
 
-    async processOrderCreation(createMpOrderDto: CreateMpOrderDto) {
+    async processOrderCreation(createMpOrderDto: CreateMpOrderDto & { userId: string; }) {
         const { userId, eventId, items } = createMpOrderDto;
 
         this.logger.log(
@@ -42,7 +42,7 @@ export class OrderBusinessService {
         };
     }
 
-    async validateOrderData(createMpOrderDto: CreateMpOrderDto): Promise<void> {
+    async validateOrderData(createMpOrderDto: CreateMpOrderDto & { userId: string; }): Promise<void> {
         const { userId, eventId, items } = createMpOrderDto;
 
         const user = await this.prisma.user.findUnique({
