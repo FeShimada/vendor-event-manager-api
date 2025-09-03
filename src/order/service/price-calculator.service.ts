@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateMpOrderItemDto } from '../dto/create-mp-order.dto';
+import { CreateOrderItemDto } from '../dto/create-order.dto';
 
 export interface CalculatedItem {
     eventProductId: string;
@@ -23,7 +23,7 @@ export class PriceCalculatorService {
 
     async calculateOrderPrices(
         eventId: string,
-        items: CreateMpOrderItemDto[],
+        items: CreateOrderItemDto[],
     ): Promise<OrderCalculation> {
         this.logger.log(
             `Calculando preços para evento ${eventId} com ${items.length} itens`,
@@ -86,7 +86,7 @@ export class PriceCalculatorService {
 
     async validateItemsAvailability(
         eventId: string,
-        items: CreateMpOrderItemDto[],
+        items: CreateOrderItemDto[],
     ): Promise<void> {
         this.logger.log(
             `Validando disponibilidade dos itens para evento ${eventId}`,

@@ -3,20 +3,20 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { PrismaService } from './prisma/prisma.service';
-import { MpNotificationModule } from './mp-notification/mp-notification.module';
-import { MpOrderModule } from './mp-order/mp-order.module';
+import { OrderModule } from './order/order.module';
 import { ProductModule } from './product/product.module';
 import { EventModule } from './event/event.module';
+import { MercadoPagoModule } from './integrations/mercado-pago/mercado-pago.module';
 
 @Module({
   imports: [
     AuthModule,
-    MpNotificationModule,
-    MpOrderModule,
+    OrderModule,
     ProductModule,
     EventModule,
+    MercadoPagoModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
-export class AppModule {}
+export class AppModule { }

@@ -22,7 +22,7 @@ export class EventController {
   @UseGuards(AuthGuard)
   @Post()
   create(@Body() createEventDto: CreateEventDto, @Request() req) {
-    return this.eventService.create({ ...createEventDto, userId: req.user.id });
+    return this.eventService.create({ ...createEventDto, userId: req.user.userId });
   }
 
   @UseGuards(AuthGuard)
@@ -46,7 +46,7 @@ export class EventController {
   @UseGuards(AuthGuard)
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto, @Request() req) {
-    return this.eventService.update(id, { ...updateEventDto, userId: req.user.id });
+    return this.eventService.update(id, { ...updateEventDto, userId: req.user.userId });
   }
 
   @UseGuards(AuthGuard)

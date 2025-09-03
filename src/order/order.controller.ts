@@ -9,37 +9,38 @@ import {
   Request,
 } from '@nestjs/common';
 import { Body, Param } from '@nestjs/common';
-import { MpOrderService } from './service/mp-order.service';
-import { CreateMpOrderDto, OrderStatusDto } from './dto/create-mp-order.dto';
+import { OrderService } from './service/order.service';
+import { CreateOrderDto, OrderStatusDto } from './dto/create-order.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { MercadoPagoExceptionFilter } from 'src/common/filters/mercado-pago-exception.filter';
 
-@Controller('mp-order')
+@Controller('order')
 @UseFilters(MercadoPagoExceptionFilter)
-export class MpOrderController {
-  constructor(private readonly mpOrderService: MpOrderService) { }
+export class OrderController {
+  constructor(private readonly orderService: OrderService) { }
 
   @UseGuards(AuthGuard)
   @Post()
-  create(@Body() createMpOrderDto: CreateMpOrderDto, @Request() req) {
-    return this.mpOrderService.create({ ...createMpOrderDto, userId: req.user.id });
+  create(@Body() createOrderDto: CreateOrderDto, @Request() req) {
+    console.log(req.user);
+    return this.orderService.create({ ...createOrderDto, userId: req.user.userId });
   }
 
   @UseGuards(AuthGuard)
   @Get()
   findByStatus(@Query('status') status: OrderStatusDto) {
-    return this.mpOrderService.findByStatus(status);
+    return this.orderService.findByStatus(status);
   }
 
   @UseGuards(AuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.mpOrderService.findOne(id);
+    return this.orderService.findOne(id);
   }
 
   @UseGuards(AuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.mpOrderService.remove(id);
+    return this.orderService.remove(id);
   }
 }

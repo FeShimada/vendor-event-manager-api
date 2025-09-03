@@ -1,35 +1,35 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateMpOrderDto, OrderStatusDto, PaymentMethod } from '../dto/create-mp-order.dto';
+import { CreateOrderDto, OrderStatusDto, PaymentMethod } from '../dto/create-order.dto';
 import { OrderBusinessService } from './order-business.service';
-import { MercadoPagoService } from './mercado-pago.service';
 import { MercadoPagoException } from 'src/common/filters/mercado-pago-exception.filter';
+import { OrderService as MercadoPagoOrderService } from 'src/integrations/mercado-pago/order/order.service';
 
 @Injectable()
-export class MpOrderService {
+export class OrderService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly orderBusiness: OrderBusinessService,
-        private readonly mercadoPagoService: MercadoPagoService,
+        private readonly mercadoPagoService: MercadoPagoOrderService,
     ) { }
 
-    private readonly logger = new Logger(MpOrderService.name);
+    private readonly logger = new Logger(OrderService.name);
 
-    async create(createMpOrderDto: CreateMpOrderDto & { userId: string; }) {
+    async create(createOrderDto: CreateOrderDto & { userId: string; }) {
         try {
             return await this.prisma.$transaction(async (prisma) => {
-                await this.orderBusiness.validateOrderData(createMpOrderDto);
+                await this.orderBusiness.validateOrderData(createOrderDto);
 
                 const processedOrder =
-                    await this.orderBusiness.processOrderCreation(createMpOrderDto);
+                    await this.orderBusiness.processOrderCreation(createOrderDto);
 
                 const order = await prisma.order.create({
                     data: {
                         userId: processedOrder.userId,
                         eventId: processedOrder.eventId,
                         amount: processedOrder.totalAmount,
-                        status: createMpOrderDto.paymentMethod === PaymentMethod.CASH ? OrderStatusDto.PROCESSED : OrderStatusDto.CREATED,
-                        paymentMethod: createMpOrderDto.paymentMethod,
+                        status: createOrderDto.paymentMethod === PaymentMethod.CASH ? OrderStatusDto.PROCESSED : OrderStatusDto.CREATED,
+                        paymentMethod: createOrderDto.paymentMethod,
                         items: {
                             create: processedOrder.items.map((item) => ({
                                 eventProductId: item.eventProductId,

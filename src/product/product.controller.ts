@@ -21,7 +21,7 @@ export class ProductController {
   @UseGuards(AuthGuard)
   @Post()
   create(@Body() createProductDto: CreateProductDto, @Request() req) {
-    return this.productService.create({ ...createProductDto, userId: req.user.id });
+    return this.productService.create({ ...createProductDto, userId: req.user.userId });
   }
 
   @UseGuards(AuthGuard)
@@ -39,7 +39,7 @@ export class ProductController {
   @UseGuards(AuthGuard)
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto, @Request() req) {
-    return this.productService.update(id, { ...updateProductDto, userId: req.user.id });
+    return this.productService.update(id, { ...updateProductDto, userId: req.user.userId });
   }
 
   @UseGuards(AuthGuard)

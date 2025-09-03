@@ -25,7 +25,7 @@ export enum PaymentMethod {
   CASH = 'CASH',
 }
 
-export class CreateMpOrderDto {
+export class CreateOrderDto {
   @IsUUID()
   @IsNotEmpty()
   eventId: string;
@@ -36,11 +36,11 @@ export class CreateMpOrderDto {
 
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateMpOrderItemDto)
-  items: CreateMpOrderItemDto[];
+  @Type(() => CreateOrderItemDto)
+  items: CreateOrderItemDto[];
 }
 
-export class CreateMpOrderItemDto {
+export class CreateOrderItemDto {
   @IsUUID()
   @IsNotEmpty()
   eventProductId: string;

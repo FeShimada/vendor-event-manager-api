@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateMpOrderDto } from '../dto/create-mp-order.dto';
 import { PriceCalculatorService } from './price-calculator.service';
+import { CreateOrderDto } from '../dto/create-order.dto';
 
 @Injectable()
 export class OrderBusinessService {
@@ -12,8 +12,8 @@ export class OrderBusinessService {
         private readonly priceCalculator: PriceCalculatorService,
     ) { }
 
-    async processOrderCreation(createMpOrderDto: CreateMpOrderDto & { userId: string; }) {
-        const { userId, eventId, items } = createMpOrderDto;
+    async processOrderCreation(createOrderDto: CreateOrderDto & { userId: string; }) {
+        const { userId, eventId, items } = createOrderDto;
 
         this.logger.log(
             `Processando criação de ordem para usuário ${userId} no evento ${eventId}`,
@@ -42,8 +42,8 @@ export class OrderBusinessService {
         };
     }
 
-    async validateOrderData(createMpOrderDto: CreateMpOrderDto & { userId: string; }): Promise<void> {
-        const { userId, eventId, items } = createMpOrderDto;
+    async validateOrderData(createOrderDto: CreateOrderDto & { userId: string; }): Promise<void> {
+        const { userId, eventId, items } = createOrderDto;
 
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
