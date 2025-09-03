@@ -25,6 +25,23 @@ model User {
   events    Event[]
   orders    Order[]
   refreshTokens RefreshToken[]
+  mercadoPagoAccount MercadoPagoAccount?
+}
+
+model MercadoPagoAccount {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  mpUserId       String?
+  accessToken    String
+  refreshToken   String
+  expiresAt      DateTime   
+  publicKey      String?    
+  liveMode       Boolean    @default(false) 
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model RefreshToken {

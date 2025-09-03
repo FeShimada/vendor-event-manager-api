@@ -1,0 +1,36 @@
+import { Controller, Get, Logger, Query, Request, UseGuards } from '@nestjs/common';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { AuthService } from './auth.service';
+
+@Controller('integrations/mercado-pago/auth')
+export class AuthController {
+    private readonly logger = new Logger(AuthController.name);
+
+    constructor(private readonly authService: AuthService) { }
+
+    @Get('generate-url')
+    @UseGuards(AuthGuard)
+    async generateAuthUrl(@Request() req) {
+        try {
+            const authUrl = await this.authService.generateAuthUrl(req.user.userId);
+            return {
+                success: true,
+                authUrl: authUrl,
+                message: 'URL de autenticação OAuth gerada com sucesso'
+            };
+        } catch (error) {
+            this.logger.error('Erro ao gerar URL de autenticação:', error);
+            return {
+                success: false,
+                error: error.message,
+                message: 'Erro ao gerar URL de autenticação OAuth'
+            };
+        }
+    }
+
+    @Get('callback')
+    async callback(@Query('code') code: string, @Query('state') state: string) {
+        const result = await this.authService.handleCallback(code, state);
+        return result;
+    }
+}
