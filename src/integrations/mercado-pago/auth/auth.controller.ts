@@ -1,4 +1,4 @@
-import { Controller, Get, Logger, Query, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Logger, Query, Redirect, Request, UseGuards } from '@nestjs/common';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { AuthService } from './auth.service';
 
@@ -29,8 +29,12 @@ export class AuthController {
     }
 
     @Get('callback')
+    @Redirect()
     async callback(@Query('code') code: string, @Query('state') state: string) {
-        const result = await this.authService.handleCallback(code, state);
-        return result;
+        await this.authService.handleCallback(code, state);
+        return {
+            url: 'https://www.google.com/search?q=deu+certo&rlz=1C1JJTC_pt-PTBR1062BR1062&oq=deu+certo&gs_lcrp=EgZjaHJvbWUqCggAEAAY4wIYgAQyCggAEAAY4wIYgAQyBwgBEC4YgAQyBwgCEAAYgAQyBwgDEAAYgAQyBwgEEAAYgAQyBwgFEAAYgAQyBwgGEC4YgAQyBwgHEAAYgAQyBwgIEAAYgAQyBwgJEAAYgATSAQgxMzU4ajBqN6gCALACAA&sourceid=chrome&ie=UTF-8',
+            statusCode: 302
+        };
     }
 }

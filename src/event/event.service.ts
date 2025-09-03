@@ -2,12 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateEventDto, EventStatusDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import type {
-  EventCategory,
-  EventStatus,
-  EventRecurrence,
-} from 'generated/prisma';
 import { AddProductsToEventDto } from './dto/add-products-to-event.dto';
+import { EventCategory, EventRecurrence, EventStatus } from '@prisma/client';
 
 @Injectable()
 export class EventService {

@@ -1,34 +1,38 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Decimal } from '@prisma/client/runtime/library';
 import { v4 as uuidv4 } from 'uuid';
 import { MercadoPagoException } from 'src/common/filters/mercado-pago-exception.filter';
-import { Order, OrderItem, PaymentMethod } from 'generated/prisma';
 import { MercadoPagoOrderRequest, MercadoPagoOrderResponse } from './interfaces/mercado-pago-order.interface';
+import { AuthService } from '../auth/auth.service';
+import { Order, OrderItem, PaymentMethod } from '@prisma/client';
 
 @Injectable()
 export class OrderService {
     private readonly logger = new Logger(OrderService.name);
 
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly authService: AuthService,
+    ) { }
 
     async createOrder(
-        order: Order & { items: (OrderItem & { eventProduct: { product: { name: string, price: Decimal; }; }; })[]; },
+        order: Order & { items: (OrderItem & { eventProduct: { product: { name: string, price: any; }; }; })[]; },
         prismaClient: any = this.prisma,
     ): Promise<MercadoPagoOrderResponse> {
         const mpBaseUrl = process.env.MP_BASE_URL;
-        const mpAccessToken = process.env.MP_ACCESS_TOKEN;
         const mpTerminalId = process.env.MP_TERMINAL_ID;
         const mpExternalPosId = process.env.MP_EXTERNAL_POS_ID;
         const idempotencyKey = uuidv4();
 
-        if (!mpBaseUrl || !mpAccessToken || !mpTerminalId || !mpExternalPosId) {
+        const mpAccessToken = await this.authService.getAccessToken(order.userId);
+
+        if (!mpBaseUrl || !mpTerminalId || !mpExternalPosId || !mpAccessToken) {
             this.logger.error('Configurações do Mercado Pago não encontradas');
             throw new MercadoPagoException(
                 500,
                 'Configurações do Mercado Pago não encontradas',
                 'CONFIGURATION_ERROR',
-                { missingConfigs: { mpBaseUrl: !mpBaseUrl, mpAccessToken: !mpAccessToken, mpTerminalId: !mpTerminalId } }
+                { missingConfigs: { mpBaseUrl: !mpBaseUrl, mpTerminalId: !mpTerminalId, mpAccessToken: !mpAccessToken } }
             );
         }
 
@@ -165,22 +169,4 @@ export class OrderService {
             );
         }
     }
-
-    validateConfiguration(): void {
-        const mpBaseUrl = process.env.MP_BASE_URL;
-        const mpAccessToken = process.env.MP_ACCESS_TOKEN;
-        const mpTerminalId = process.env.MP_TERMINAL_ID;
-
-        if (!mpBaseUrl || !mpAccessToken || !mpTerminalId) {
-            throw new MercadoPagoException(
-                500,
-                'Configurações do Mercado Pago incompletas',
-                'CONFIGURATION_ERROR',
-                { missingConfigs: { mpBaseUrl: !mpBaseUrl, mpAccessToken: !mpAccessToken, mpTerminalId: !mpTerminalId } }
-            );
-        }
-
-        this.logger.log('Configurações do Mercado Pago validadas com sucesso');
-    }
-
 }

@@ -1,11 +1,15 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "src/prisma/prisma.service";
+import { CryptoService } from "src/common/services/crypto.service";
 import { randomUUID } from "crypto";
 
 @Injectable()
 export class AuthService {
 
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly cryptoService: CryptoService
+    ) { }
 
     private readonly logger = new Logger(AuthService.name);
 
@@ -56,7 +60,7 @@ export class AuthService {
                 grant_type: 'authorization_code',
                 code,
                 redirect_uri: `${baseUrl}/integrations/mercado-pago/auth/callback`,
-                test_token: 'true'
+                // test_token: 'true'
             };
 
             const response = await fetch(`${mpBaseUrl}/oauth/token`, {
@@ -83,23 +87,27 @@ export class AuthService {
 
             const expiresAt = new Date(Date.now() + data.expires_in * 1000);
 
+            const encryptedAccessToken = this.cryptoService.encrypt(data.access_token);
+            const encryptedRefreshToken = this.cryptoService.encrypt(data.refresh_token);
+            const encryptedPublicKey = data.public_key ? this.cryptoService.encrypt(data.public_key) : null;
+
             return await this.prisma.mercadoPagoAccount.upsert({
                 where: { userId },
                 update: {
                     mpUserId: String(data.user_id),
-                    accessToken: data.access_token,
-                    refreshToken: data.refresh_token,
+                    accessToken: encryptedAccessToken,
+                    refreshToken: encryptedRefreshToken,
                     expiresAt,
-                    publicKey: data.public_key,
+                    publicKey: encryptedPublicKey,
                     liveMode: data.live_mode,
                 },
                 create: {
                     userId,
                     mpUserId: String(data.user_id),
-                    accessToken: data.access_token,
-                    refreshToken: data.refresh_token,
+                    accessToken: encryptedAccessToken,
+                    refreshToken: encryptedRefreshToken,
                     expiresAt,
-                    publicKey: data.public_key,
+                    publicKey: encryptedPublicKey,
                     liveMode: data.live_mode,
                 },
             });
@@ -126,7 +134,7 @@ export class AuthService {
             return refreshedToken.access_token;
         }
 
-        return mercadoPagoAccount.accessToken;
+        return this.cryptoService.decrypt(mercadoPagoAccount.accessToken);
     }
 
     async refreshToken(refreshToken: string, userId: string) {
@@ -139,11 +147,13 @@ export class AuthService {
                 throw new Error('Configurações do Mercado Pago não encontradas');
             }
 
+            const decryptedRefreshToken = this.cryptoService.decrypt(refreshToken);
+
             const body = {
                 client_secret: clientSecret,
                 client_id: clientId,
                 grant_type: 'refresh_token',
-                refresh_token: refreshToken,
+                refresh_token: decryptedRefreshToken,
             };
 
             const response = await fetch(`${mpBaseUrl}/oauth/token`, {
@@ -163,11 +173,14 @@ export class AuthService {
 
             const data = await response.json();
 
+            const encryptedAccessToken = this.cryptoService.encrypt(data.access_token);
+            const encryptedRefreshToken = this.cryptoService.encrypt(data.refresh_token);
+
             await this.prisma.mercadoPagoAccount.update({
                 where: { refreshToken: refreshToken, userId: userId },
                 data: {
-                    accessToken: data.access_token,
-                    refreshToken: data.refresh_token,
+                    accessToken: encryptedAccessToken,
+                    refreshToken: encryptedRefreshToken,
                     expiresAt: new Date(Date.now() + data.expires_in * 1000),
                 },
             });
