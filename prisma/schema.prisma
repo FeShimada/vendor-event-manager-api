@@ -15,16 +15,103 @@ datasource db {
 
 model User {
   id        String   @id @default(uuid())
+
   email     String   @unique
   password  String
   name      String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  mercadoPagoAccount MercadoPagoAccount?
+
   products  Product[]
   events    Event[]
   orders    Order[]
   refreshTokens RefreshToken[]
-  mercadoPagoAccount MercadoPagoAccount?
+  terminals Terminal[]
+  employees Employee[]
+}
+
+model Employee {
+  id        String   @id @default(uuid())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name      String
+  email     String?
+  phone     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments EventEmployee[]
+}
+
+model Terminal {
+  id                  String   @id @default(uuid())
+
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  mpTerminalId        String
+  mpExternalPosId     String?
+
+  alias               String?
+
+  active Boolean @default(false)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  events              EventTerminal[]
+  eventEmployees      EventEmployee[]
+}
+
+model EventTerminal {
+  id        String   @id @default(uuid())
+
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  terminalId String
+  terminal  Terminal @relation(fields: [terminalId], references: [id], onDelete: Cascade)
+
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, terminalId])
+}
+
+enum EventEmployeeRole {
+  CASHIER
+  COMMON
+}
+
+model EventEmployee {
+  id        String   @id @default(uuid())
+
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  employeeId String
+  employee  Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  role EventEmployeeRole
+
+  terminalId String?
+  terminal  Terminal? @relation(fields: [terminalId], references: [id], onDelete: Cascade)
+  password  String?
+
+  expense Decimal @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, employeeId])
 }
 
 model MercadoPagoAccount {
@@ -94,8 +181,10 @@ enum EventRecurrence {
 
 model Event {
   id              String           @id @default(uuid())
+
   userId          String
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   name            String
   description     String
   notes           Json?
@@ -109,12 +198,16 @@ model Event {
   commissionRate  Decimal?         @db.Decimal(5, 2)
   participationFee Decimal?        @db.Decimal(10, 2)
   contactInfo     Json?
+
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+
   address         Address?
   occurrences     EventOccurrence[]
   products        EventProduct[]
   orders          Order[]
+  eventTerminals  EventTerminal[]
+  eventEmployees  EventEmployee[]
 }
 
 model Address {
