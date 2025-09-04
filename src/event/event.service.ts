@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateEventDto, EventStatusDto } from './dto/create-event.dto';
+import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddProductsToEventDto } from './dto/add-products-to-event.dto';
@@ -36,7 +36,7 @@ export class EventService {
         name,
         description,
         notes,
-        category: category as EventCategory,
+        category,
         status: (status as EventStatus) || 'DRAFT',
         recurrence: (recurrence as EventRecurrence) || 'NONE',
         startDate: new Date(startDate),
@@ -159,7 +159,7 @@ export class EventService {
   }
 
   async findOne(id: string) {
-    return this.prisma.event.findUnique({
+    const event = this.prisma.event.findUnique({
       where: { id },
       include: {
         address: true,
@@ -178,6 +178,12 @@ export class EventService {
         },
       },
     });
+
+    if (!event) {
+      throw new NotFoundException(`Evento com ID ${id} não encontrado`);
+    }
+
+    return event;
   }
 
   async update(id: string, updateEventDto: UpdateEventDto & { userId: string; }) {
@@ -313,11 +319,11 @@ export class EventService {
     if (event.orders.length > 0) {
       return this.prisma.event.update({
         where: { id },
-        data: { status: EventStatusDto.ARCHIVED },
+        data: { status: EventStatus.ARCHIVED },
       });
     }
 
-    if (event.status === EventStatusDto.DRAFT) {
+    if (event.status === EventStatus.DRAFT) {
       return this.prisma.event.delete({
         where: { id },
         include: {

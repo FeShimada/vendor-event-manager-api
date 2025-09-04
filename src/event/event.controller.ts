@@ -14,6 +14,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { AddProductsToEventDto } from './dto/add-products-to-event.dto';
+import { User } from 'src/common/decorators/user.decorator';
 
 @Controller('event')
 export class EventController {
@@ -21,8 +22,8 @@ export class EventController {
 
   @UseGuards(AuthGuard)
   @Post()
-  create(@Body() createEventDto: CreateEventDto, @Request() req) {
-    return this.eventService.create({ ...createEventDto, userId: req.user.userId });
+  create(@Body() createEventDto: CreateEventDto, @User() user: { userId: string; }) {
+    return this.eventService.create({ ...createEventDto, userId: user.userId });
   }
 
   @UseGuards(AuthGuard)
@@ -45,8 +46,8 @@ export class EventController {
 
   @UseGuards(AuthGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto, @Request() req) {
-    return this.eventService.update(id, { ...updateEventDto, userId: req.user.userId });
+  update(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto, @User() user: { userId: string; }) {
+    return this.eventService.update(id, { ...updateEventDto, userId: user.userId });
   }
 
   @UseGuards(AuthGuard)

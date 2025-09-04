@@ -5,9 +5,9 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'crypto';
-import { OrderStatusDto } from 'src/order/dto/create-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import type { WebhookBody } from './interfaces/webhook.interface';
+import { OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class NotificationService {
@@ -15,13 +15,13 @@ export class NotificationService {
 
     private readonly logger = new Logger(NotificationService.name);
 
-    async updateOrderStatus(mpId: string, status: OrderStatusDto) {
+    async updateOrderStatus(mpId: string, status: OrderStatus) {
         if (!mpId || typeof mpId !== 'string') {
             this.logger.error(`Mercado Pago Id inválido: ${mpId}`);
             throw new Error('Invalid externalRef parameter');
         }
 
-        if (!status || !Object.values(OrderStatusDto).includes(status)) {
+        if (!status || !Object.values(OrderStatus).includes(status)) {
             this.logger.error(`Status inválido: ${status}`);
             throw new Error('Invalid status parameter');
         }
@@ -99,24 +99,24 @@ export class NotificationService {
 
     private mapMercadoPagoStatusToOrderStatus(
         mpStatus: string,
-    ): OrderStatusDto | null {
+    ): OrderStatus | null {
         if (!mpStatus || typeof mpStatus !== 'string') {
             this.logger.warn(`Status inválido recebido: ${mpStatus}`);
             return null;
         }
 
-        const statusMap: Record<string, OrderStatusDto> = {
-            created: OrderStatusDto.CREATED,
-            expired: OrderStatusDto.EXPIRED,
-            canceled: OrderStatusDto.CANCELED,
-            at_terminal: OrderStatusDto.AT_TERMINAL,
-            processed: OrderStatusDto.PROCESSED,
-            refunded: OrderStatusDto.REFUNDED,
-            failed: OrderStatusDto.FAILED,
-            action_required: OrderStatusDto.ACTION_REQUIRED,
-            approved: OrderStatusDto.PROCESSED,
-            cancelled: OrderStatusDto.CANCELED,
-            rejected: OrderStatusDto.FAILED,
+        const statusMap: Record<string, OrderStatus> = {
+            created: OrderStatus.CREATED,
+            expired: OrderStatus.EXPIRED,
+            canceled: OrderStatus.CANCELED,
+            at_terminal: OrderStatus.AT_TERMINAL,
+            processed: OrderStatus.PROCESSED,
+            refunded: OrderStatus.REFUNDED,
+            failed: OrderStatus.FAILED,
+            action_required: OrderStatus.ACTION_REQUIRED,
+            approved: OrderStatus.PROCESSED,
+            cancelled: OrderStatus.CANCELED,
+            rejected: OrderStatus.FAILED,
         };
 
         const normalizedStatus = mpStatus.toLowerCase().trim();

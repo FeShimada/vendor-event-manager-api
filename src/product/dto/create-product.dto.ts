@@ -1,16 +1,11 @@
+import { ProductStatus } from '@prisma/client';
 import {
-  IsUUID,
   IsString,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsEnum,
 } from 'class-validator';
-
-export enum ProductStatusDto {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-}
 
 export class CreateProductDto {
   @IsString()
@@ -24,6 +19,6 @@ export class CreateProductDto {
   cost: number;
 
   @IsOptional()
-  @IsEnum(ProductStatusDto)
-  status?: ProductStatusDto;
+  @IsEnum(ProductStatus)
+  status?: ProductStatus;
 }

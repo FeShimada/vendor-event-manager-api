@@ -1,6 +1,7 @@
 import { Controller, Get, Logger, Query, Redirect, Request, UseGuards } from '@nestjs/common';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { AuthService } from './auth.service';
+import { User } from 'src/common/decorators/user.decorator';
 
 @Controller('integrations/mercado-pago/auth')
 export class AuthController {
@@ -10,9 +11,9 @@ export class AuthController {
 
     @Get('generate-url')
     @UseGuards(AuthGuard)
-    async generateAuthUrl(@Request() req) {
+    async generateAuthUrl(@User() user: { userId: string; }) {
         try {
-            const authUrl = await this.authService.generateAuthUrl(req.user.userId);
+            const authUrl = await this.authService.generateAuthUrl(user.userId);
             return {
                 success: true,
                 authUrl: authUrl,

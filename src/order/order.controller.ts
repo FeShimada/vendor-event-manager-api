@@ -6,13 +6,14 @@ import {
   Query,
   UseGuards,
   UseFilters,
-  Request,
 } from '@nestjs/common';
 import { Body, Param } from '@nestjs/common';
 import { OrderService } from './service/order.service';
-import { CreateOrderDto, OrderStatusDto } from './dto/create-order.dto';
+import { CreateOrderDto } from './dto/create-order.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { MercadoPagoExceptionFilter } from 'src/common/filters/mercado-pago-exception.filter';
+import { OrderStatus } from '@prisma/client';
+import { User } from 'src/common/decorators/user.decorator';
 
 @Controller('order')
 @UseFilters(MercadoPagoExceptionFilter)
@@ -21,14 +22,13 @@ export class OrderController {
 
   @UseGuards(AuthGuard)
   @Post()
-  create(@Body() createOrderDto: CreateOrderDto, @Request() req) {
-    console.log(req.user);
-    return this.orderService.create({ ...createOrderDto, userId: req.user.userId });
+  create(@Body() createOrderDto: CreateOrderDto, @User() user: { userId: string; }) {
+    return this.orderService.create({ ...createOrderDto, userId: user.userId });
   }
 
   @UseGuards(AuthGuard)
   @Get()
-  findByStatus(@Query('status') status: OrderStatusDto) {
+  findByStatus(@Query('status') status: OrderStatus) {
     return this.orderService.findByStatus(status);
   }
 

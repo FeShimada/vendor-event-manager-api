@@ -10,27 +10,7 @@ import {
   IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-
-export enum EventCategoryDto {
-  FAIR = 'FAIR',
-  EVENT = 'EVENT',
-}
-
-export enum EventStatusDto {
-  DRAFT = 'DRAFT',
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  ARCHIVED = 'ARCHIVED',
-}
-
-export enum EventRecurrenceDto {
-  NONE = 'NONE',
-  DAILY = 'DAILY',
-  WEEKLY = 'WEEKLY',
-  MONTHLY = 'MONTHLY',
-  YEARLY = 'YEARLY',
-  CUSTOM = 'CUSTOM',
-}
+import { EventCategory, EventRecurrence, EventStatus } from '@prisma/client';
 
 export class CreateEventAddressDto {
   @IsString()
@@ -92,16 +72,16 @@ export class CreateEventDto {
   @IsObject()
   notes?: any;
 
-  @IsEnum(EventCategoryDto)
-  category: EventCategoryDto;
+  @IsEnum(EventCategory)
+  category: EventCategory;
 
   @IsOptional()
-  @IsEnum(EventStatusDto)
-  status?: EventStatusDto;
+  @IsEnum(EventStatus)
+  status?: EventStatus;
 
   @IsOptional()
-  @IsEnum(EventRecurrenceDto)
-  recurrence?: EventRecurrenceDto;
+  @IsEnum(EventRecurrence)
+  recurrence?: EventRecurrence;
 
   @IsDateString()
   startDate: string;

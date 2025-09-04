@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateOrderDto, OrderStatusDto, PaymentMethod } from '../dto/create-order.dto';
+import { CreateOrderDto } from '../dto/create-order.dto';
 import { OrderBusinessService } from './order-business.service';
 import { MercadoPagoException } from 'src/common/filters/mercado-pago-exception.filter';
 import { OrderService as MercadoPagoOrderService } from 'src/integrations/mercado-pago/order/order.service';
+import { Order, OrderStatus, PaymentMethod } from '@prisma/client';
 
 @Injectable()
 export class OrderService {
@@ -28,7 +29,7 @@ export class OrderService {
                         userId: processedOrder.userId,
                         eventId: processedOrder.eventId,
                         amount: processedOrder.totalAmount,
-                        status: createOrderDto.paymentMethod === PaymentMethod.CASH ? OrderStatusDto.PROCESSED : OrderStatusDto.CREATED,
+                        status: createOrderDto.paymentMethod === PaymentMethod.CASH ? OrderStatus.PROCESSED : OrderStatus.CREATED,
                         paymentMethod: createOrderDto.paymentMethod,
                         items: {
                             create: processedOrder.items.map((item) => ({
@@ -71,7 +72,7 @@ export class OrderService {
         }
     }
 
-    async findByStatus(status: OrderStatusDto) {
+    async findByStatus(status: OrderStatus): Promise<Order[]> {
         return this.prisma.order.findMany({
             where: {
                 status,
@@ -90,8 +91,8 @@ export class OrderService {
         });
     }
 
-    async findOne(id: string) {
-        return this.prisma.order.findUnique({
+    async findOne(id: string): Promise<Order> {
+        const order = await this.prisma.order.findUnique({
             where: { id },
             include: {
                 items: {
@@ -101,11 +102,25 @@ export class OrderService {
                 },
             },
         });
+
+        if (!order) {
+            throw new NotFoundException('Ordem não encontrada');
+        }
+
+        return order;
     }
 
-    async remove(id: string) {
-        return this.prisma.order.delete({
+    async remove(id: string): Promise<Order> {
+        const order = await this.prisma.order.findUnique({
             where: { id },
+        });
+
+        if (!order) {
+            throw new NotFoundException('Ordem não encontrada');
+        }
+
+        return this.prisma.order.delete({
+            where: { id }
         });
     }
 }
