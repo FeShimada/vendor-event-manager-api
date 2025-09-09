@@ -4,6 +4,7 @@ import { UpdateEventDto } from './dto/update-event.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddProductsToEventDto } from './dto/add-products-to-event.dto';
 import { EventCategory, EventRecurrence, EventStatus } from '@prisma/client';
+import { AddTerminalToEventDto } from './dto/add-terminals-to-event.dto';
 
 @Injectable()
 export class EventService {
@@ -28,6 +29,7 @@ export class EventService {
       address,
       productIds,
       occurrences,
+      terminalIds,
     } = createEventDto;
 
     return this.prisma.event.create({
@@ -102,8 +104,8 @@ export class EventService {
     });
   }
 
-  async addProductsToEvent(addProductsToEventDto: AddProductsToEventDto) {
-    const { eventId, productIds } = addProductsToEventDto;
+  async addProductsToEvent(eventId: string, addProductsToEventDto: AddProductsToEventDto) {
+    const { productIds } = addProductsToEventDto;
 
     const existingEvent = await this.prisma.event.findUnique({
       where: { id: eventId },
@@ -117,6 +119,59 @@ export class EventService {
       where: { id: eventId },
       data: {
         products: { create: productIds.map((productId) => ({ productId })) },
+      },
+      include: {
+        address: true,
+        products: {
+          include: {
+            product: true,
+          },
+        },
+        occurrences: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  async addTerminalToEvent(eventId: string, addTerminalToEventDto: AddTerminalToEventDto) {
+
+    const { terminalId, isPrimary } = addTerminalToEventDto;
+
+    const existingEvent = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      include: {
+        eventTerminals: true,
+      },
+    });
+
+    if (!existingEvent) {
+      throw new Error(`Evento com ID ${eventId} não encontrado`);
+    }
+
+    const hasPrimaryTerminal = existingEvent.eventTerminals.some(
+      (terminal) => terminal.isPrimary === true
+    );
+
+    if (existingEvent.eventTerminals.length === 0 && !isPrimary) {
+      throw new Error('O primeiro terminal adicionado ao evento deve ser marcado como primário');
+    }
+
+    if (hasPrimaryTerminal && isPrimary) {
+      throw new Error(`Evento com ID ${eventId} já tem terminal primário`);
+    }
+
+    const finalIsPrimary = !hasPrimaryTerminal ? true : isPrimary;
+
+    return this.prisma.event.update({
+      where: { id: eventId },
+      data: {
+        eventTerminals: { create: { terminalId, isPrimary: finalIsPrimary } },
       },
       include: {
         address: true,
@@ -205,6 +260,7 @@ export class EventService {
       address,
       productIds,
       occurrences,
+      terminalIds,
     } = updateEventDto;
 
     if (productIds) {
@@ -282,6 +338,12 @@ export class EventService {
                   ? new Date(occurrence.endTime)
                   : null,
               })),
+            }
+            : undefined,
+        eventTerminals:
+          terminalIds && terminalIds.length > 0
+            ? {
+              create: terminalIds.map((terminalId) => ({ terminalId })),
             }
             : undefined,
       },

@@ -15,6 +15,7 @@ import { UpdateEventDto } from './dto/update-event.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { AddProductsToEventDto } from './dto/add-products-to-event.dto';
 import { User } from 'src/common/decorators/user.decorator';
+import { AddTerminalToEventDto } from './dto/add-terminals-to-event.dto';
 
 @Controller('event')
 export class EventController {
@@ -27,9 +28,15 @@ export class EventController {
   }
 
   @UseGuards(AuthGuard)
-  @Post('add-products-to-event')
-  addProductToEvent(@Body() addProductToEventDto: AddProductsToEventDto) {
-    return this.eventService.addProductsToEvent(addProductToEventDto);
+  @Post(':id/products')
+  addProductToEvent(@Param('id') id: string, @Body() addProductToEventDto: AddProductsToEventDto) {
+    return this.eventService.addProductsToEvent(id, addProductToEventDto);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post(':id/terminal')
+  addTerminalToEvent(@Param('id') id: string, @Body() addTerminalToEventDto: AddTerminalToEventDto) {
+    return this.eventService.addTerminalToEvent(id, addTerminalToEventDto);
   }
 
   @UseGuards(AuthGuard)

@@ -123,4 +123,9 @@ export class CreateEventDto {
   @IsOptional()
   @IsArray()
   occurrences?: CreateEventOccurrenceDto[];
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  terminalIds?: string[];
 }

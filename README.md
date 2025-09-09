@@ -42,11 +42,6 @@ DATABASE_URL="postgresql://username:password@localhost:5432/database_name"
 # JWT
 JWT_SECRET="your-jwt-secret-key"
 
-# Mercado Pago Configuration
-MP_BASE_URL="https://api.mercadopago.com"
-MP_TERMINAL_ID="your-terminal-id"
-MP_WEBHOOK_SECRET="your-webhook-secret"
-
 # Application
 PORT=3000
 ```
