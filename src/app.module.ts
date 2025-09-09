@@ -8,6 +8,7 @@ import { ProductModule } from './product/product.module';
 import { EventModule } from './event/event.module';
 import { MercadoPagoModule } from './integrations/mercado-pago/mercado-pago.module';
 import { TerminalModule } from './terminal/terminal.module';
+import { EmployeeModule } from './employee/employee.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { TerminalModule } from './terminal/terminal.module';
     EventModule,
     MercadoPagoModule,
     TerminalModule,
+    EmployeeModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
