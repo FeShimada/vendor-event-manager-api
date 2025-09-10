@@ -3,7 +3,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
+import { EmployeeLoginDto, LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -41,8 +41,9 @@ export class AuthService {
         userId: user.id,
         email: user.email,
         name: user.name,
+        type: 'user',
       },
-      { expiresIn: '1h' },
+      { expiresIn: '12h' },
     );
 
     const jti = randomUUID();
@@ -72,6 +73,47 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
+      },
+    };
+  }
+
+  async employeeLogin(employeeLoginDto: EmployeeLoginDto, eventId: string) {
+
+    const employee = await this.prisma.employee.findUnique({
+      where: { email: employeeLoginDto.email },
+    });
+
+    if (!employee) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const eventEmployee = await this.prisma.eventEmployee.findUnique({
+      where: { eventId_employeeId: { eventId, employeeId: employee.id } },
+    });
+
+    if (!eventEmployee) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (eventEmployee.password !== employeeLoginDto.password) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const accessToken = await this.jwtService.signAsync({
+      eventEmployeeId: eventEmployee.id,
+      role: eventEmployee.role,
+      eventId,
+      type: 'employee',
+    }, { expiresIn: '12h' });
+
+    return {
+      accessToken,
+      message: 'Employee login successful',
+      eventEmployee: {
+        eventEmployeeId: eventEmployee.id,
+        name: employee.name,
+        role: eventEmployee.role,
+        eventId,
       },
     };
   }
@@ -116,8 +158,9 @@ export class AuthService {
         userId: user.id,
         email: user.email,
         name: user.name,
+        type: 'user',
       },
-      { expiresIn: '1h' },
+      { expiresIn: '12h' },
     );
 
     const jti = randomUUID();

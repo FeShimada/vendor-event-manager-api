@@ -6,8 +6,7 @@ export class CreateEmployeeDto {
     name: string;
 
     @IsString()
-    @IsOptional()
-    email?: string;
+    email: string;
 
     @IsString()
     @IsOptional()

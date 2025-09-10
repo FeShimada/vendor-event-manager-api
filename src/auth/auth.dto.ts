@@ -7,6 +7,13 @@ export class LoginDto {
   password: string;
 }
 
+export class EmployeeLoginDto {
+  @IsString()
+  email: string;
+  @IsString()
+  password: string;
+}
+
 export class RegisterDto {
   @IsEmail()
   email: string;

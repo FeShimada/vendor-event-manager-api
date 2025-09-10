@@ -2,13 +2,14 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
+import { EmployeeLoginDto, LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
 import { AuthService } from './auth.service';
-import { AuthGuard } from './auth.guard';
+import { AuthGuard, UserOrEmployeeGuard } from './auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -17,6 +18,11 @@ export class AuthController {
   @Post('login')
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Post(':eventId/employee-login')
+  employeeLogin(@Body() employeeLoginDto: EmployeeLoginDto, @Param('eventId') eventId: string) {
+    return this.authService.employeeLogin(employeeLoginDto, eventId);
   }
 
   @Post('refresh-token')
@@ -38,5 +44,11 @@ export class AuthController {
   @Get('me')
   me(@Request() req) {
     return req.user;
+  }
+
+  @UseGuards(UserOrEmployeeGuard)
+  @Get('me-as-employee')
+  meAsEmployee(@Request() req) {
+    return req.employee;
   }
 }
