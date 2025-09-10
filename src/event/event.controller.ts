@@ -16,6 +16,7 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { AddProductsToEventDto } from './dto/add-products-to-event.dto';
 import { User } from 'src/common/decorators/user.decorator';
 import { AddTerminalToEventDto } from './dto/add-terminals-to-event.dto';
+import { AddEmployeeToEventDto } from './dto/add-emplotee-to-event.dto';
 
 @Controller('event')
 export class EventController {
@@ -37,6 +38,24 @@ export class EventController {
   @Post(':id/terminal')
   addTerminalToEvent(@Param('id') id: string, @Body() addTerminalToEventDto: AddTerminalToEventDto) {
     return this.eventService.addTerminalToEvent(id, addTerminalToEventDto);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post(':id/employee')
+  addEmployeeToEvent(@Param('id') id: string, @Body() addEmployeeToEventDto: AddEmployeeToEventDto) {
+    return this.eventService.addEmployeeToEvent(id, addEmployeeToEventDto);
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch(':id/terminals/:terminalId/assign-cashier/:employeeId')
+  assignCashierToTerminal(@Param('id') id: string, @Param('employeeId') employeeId: string, @Param('terminalId') terminalId: string) {
+    return this.eventService.assignCashierToTerminal(id, employeeId, terminalId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch(':id/terminals/:terminalId/unassign-cashier')
+  unassignCashierFromTerminal(@Param('id') id: string, @Param('terminalId') terminalId: string) {
+    return this.eventService.unassignCashierFromTerminal(id, terminalId);
   }
 
   @UseGuards(AuthGuard)

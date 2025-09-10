@@ -66,7 +66,6 @@ model Terminal {
   updatedAt           DateTime @updatedAt
 
   events              EventTerminal[]
-  eventEmployees      EventEmployee[]
 }
 
 model EventTerminal {
@@ -82,6 +81,9 @@ model EventTerminal {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  cashierId   String?       @unique
+  cashier     EventEmployee? @relation("CashierTerminal", fields: [cashierId], references: [id])
 
   @@unique([eventId, terminalId])
 }
@@ -100,13 +102,13 @@ model EventEmployee {
   employeeId String
   employee  Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
+  expense Decimal @db.Decimal(10, 2)
+
   role EventEmployeeRole
 
-  terminalId String?
-  terminal  Terminal? @relation(fields: [terminalId], references: [id], onDelete: Cascade)
   password  String?
 
-  expense Decimal @db.Decimal(10, 2)
+  terminal   EventTerminal? @relation("CashierTerminal")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

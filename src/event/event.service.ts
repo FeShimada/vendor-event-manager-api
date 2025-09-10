@@ -3,8 +3,9 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddProductsToEventDto } from './dto/add-products-to-event.dto';
-import { EventCategory, EventRecurrence, EventStatus } from '@prisma/client';
+import { EventCategory, EventEmployeeRole, EventRecurrence, EventStatus } from '@prisma/client';
 import { AddTerminalToEventDto } from './dto/add-terminals-to-event.dto';
+import { AddEmployeeToEventDto } from './dto/add-emplotee-to-event.dto';
 
 @Injectable()
 export class EventService {
@@ -189,6 +190,90 @@ export class EventService {
           },
         },
       },
+    });
+  }
+
+  async addEmployeeToEvent(eventId: string, addEmployeeToEventDto: AddEmployeeToEventDto) {
+
+    const { employeeId, role, expense, password } = addEmployeeToEventDto;
+
+    const existingEvent = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
+
+    if (!existingEvent) {
+      throw new Error(`Evento com ID ${eventId} não encontrado`);
+    }
+
+    const existingEmployee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+    });
+
+    if (!existingEmployee) {
+      throw new Error(`Funcionário com ID ${employeeId} não encontrado`);
+    }
+
+    if (role === EventEmployeeRole.CASHIER) {
+      if (!password) {
+        throw new Error('A senha é obrigatória para o cargo de caixa');
+      }
+    }
+
+    return this.prisma.eventEmployee.create({
+      data: { eventId, employeeId, role, expense, password },
+    });
+  }
+
+  async assignCashierToTerminal(eventId: string, employeeId: string, terminalId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const event = await tx.event.findUnique({ where: { id: eventId } });
+      if (!event) throw new Error(`Evento ${eventId} não encontrado`);
+
+      const terminal = await tx.eventTerminal.findUnique({
+        where: { id: terminalId },
+      });
+      if (!terminal) throw new Error(`Terminal ${terminalId} não encontrado`);
+      if (terminal.eventId !== eventId) throw new Error(`Terminal não pertence ao evento ${eventId}`);
+      if (terminal.isPrimary) throw new Error(`Terminal primário não pode ter cashier`);
+
+      const employee = await tx.eventEmployee.findUnique({
+        where: { id: employeeId },
+      });
+      if (!employee) throw new Error(`Funcionário ${employeeId} não encontrado`);
+      if (employee.eventId !== eventId) throw new Error(`Funcionário não pertence ao evento ${eventId}`);
+      if (employee.role !== EventEmployeeRole.CASHIER) throw new Error(`Funcionário não é um caixa`);
+
+      if (terminal.cashierId) throw new Error(`Terminal já está atribuído`);
+      const employeeWithTerminal = await tx.eventTerminal.findFirst({
+        where: { cashierId: employeeId, eventId },
+      });
+      if (employeeWithTerminal) throw new Error(`Funcionário já está atribuído a outro terminal`);
+
+      return tx.eventTerminal.update({
+        where: { id: terminalId },
+        data: { cashierId: employeeId },
+      });
+    });
+  }
+
+  async unassignCashierFromTerminal(eventId: string, terminalId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const event = await tx.event.findUnique({ where: { id: eventId } });
+      if (!event) throw new Error(`Evento ${eventId} não encontrado`);
+
+      const terminal = await tx.eventTerminal.findUnique({
+        where: { id: terminalId },
+      });
+      if (!terminal) throw new Error(`Terminal ${terminalId} não encontrado`);
+      if (terminal.eventId !== eventId) throw new Error(`Terminal não pertence ao evento ${eventId}`);
+      if (terminal.isPrimary) throw new Error(`Terminal primário não pode ter caixa desassociado`);
+
+      if (!terminal.cashierId) throw new Error(`Terminal não possui caixa atribuído`);
+
+      return tx.eventTerminal.update({
+        where: { id: terminalId },
+        data: { cashierId: null },
+      });
     });
   }
 
