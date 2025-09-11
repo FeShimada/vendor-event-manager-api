@@ -18,23 +18,34 @@ export class OrderService {
     async createOrder(
         order: Order & { items: (OrderItem & { eventProduct: { product: { name: string, price: any; }; }; })[]; },
         prismaClient: any = this.prisma,
+        terminalData?: { mpTerminalId: string; mpExternalPosId: string | null; }
     ): Promise<MercadoPagoOrderResponse> {
         const mpBaseUrl = process.env.MP_BASE_URL;
-        const mpTerminalId = process.env.MP_TERMINAL_ID;
-        const mpExternalPosId = process.env.MP_EXTERNAL_POS_ID;
         const idempotencyKey = uuidv4();
 
         const mpAccessToken = await this.authService.getAccessToken(order.userId);
 
-        if (!mpBaseUrl || !mpTerminalId || !mpExternalPosId || !mpAccessToken) {
+        if (!mpBaseUrl || !mpAccessToken) {
             this.logger.error('Configurações do Mercado Pago não encontradas');
             throw new MercadoPagoException(
                 500,
                 'Configurações do Mercado Pago não encontradas',
                 'CONFIGURATION_ERROR',
-                { missingConfigs: { mpBaseUrl: !mpBaseUrl, mpTerminalId: !mpTerminalId, mpAccessToken: !mpAccessToken } }
+                { missingConfigs: { mpBaseUrl: !mpBaseUrl, mpAccessToken: !mpAccessToken } }
             );
         }
+
+        if (!terminalData || !terminalData.mpExternalPosId) {
+            this.logger.error('Dados do terminal não fornecidos');
+            throw new MercadoPagoException(
+                500,
+                'Dados do terminal não fornecidos',
+                'TERMINAL_DATA_MISSING',
+                {}
+            );
+        }
+
+        const { mpTerminalId, mpExternalPosId } = terminalData;
 
         const requestBody: MercadoPagoOrderRequest = order.paymentMethod === PaymentMethod.CARD ? {
             type: 'point',

@@ -101,6 +101,7 @@ export class AuthService {
 
     const accessToken = await this.jwtService.signAsync({
       eventEmployeeId: eventEmployee.id,
+      userId: employee.userId,
       role: eventEmployee.role,
       eventId,
       type: 'employee',

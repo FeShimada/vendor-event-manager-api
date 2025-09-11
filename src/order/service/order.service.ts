@@ -16,13 +16,56 @@ export class OrderService {
 
     private readonly logger = new Logger(OrderService.name);
 
-    async create(createOrderDto: CreateOrderDto & { userId: string; }) {
+    async create(createOrderDto: CreateOrderDto & { userId: string; eventEmployeeId?: string; }) {
         try {
             return await this.prisma.$transaction(async (prisma) => {
                 await this.orderBusiness.validateOrderData(createOrderDto);
 
                 const processedOrder =
                     await this.orderBusiness.processOrderCreation(createOrderDto);
+
+                let terminalData: { mpTerminalId: string; mpExternalPosId: string | null; } | undefined = undefined;
+
+                if (createOrderDto.eventEmployeeId) {
+                    const eventEmployee = await prisma.eventEmployee.findUnique({
+                        where: { id: createOrderDto.eventEmployeeId },
+                        include: {
+                            terminal: {
+                                include: {
+                                    terminal: true,
+                                }
+                            }
+                        }
+                    });
+
+                    if (!eventEmployee?.terminal) {
+                        throw new Error('Funcionário não possui terminal associado');
+                    }
+
+                    terminalData = {
+                        mpTerminalId: eventEmployee.terminal.terminal.mpTerminalId,
+                        mpExternalPosId: eventEmployee.terminal.terminal.mpExternalPosId,
+                    };
+                } else {
+                    const eventTerminal = await prisma.eventTerminal.findFirst({
+                        where: {
+                            eventId: createOrderDto.eventId,
+                            isPrimary: true,
+                        },
+                        include: {
+                            terminal: true,
+                        }
+                    });
+
+                    if (!eventTerminal) {
+                        throw new Error('Evento não possui terminal primário associado');
+                    }
+
+                    terminalData = {
+                        mpTerminalId: eventTerminal.terminal.mpTerminalId,
+                        mpExternalPosId: eventTerminal.terminal.mpExternalPosId,
+                    };
+                }
 
                 const order = await prisma.order.create({
                     data: {
@@ -52,7 +95,7 @@ export class OrderService {
                     },
                 });
 
-                return await this.mercadoPagoService.createOrder(order, prisma);
+                return await this.mercadoPagoService.createOrder(order, prisma, terminalData);
             });
         } catch (error) {
             if (error instanceof MercadoPagoException) {
